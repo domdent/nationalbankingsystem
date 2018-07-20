@@ -1,8 +1,9 @@
 import abce
 import random
+import abcFinance
 
 
-class Firm(abce.Agent):
+class Firm(abcFinance.Agent):
     """
     Firm:
     - employs workers each round
@@ -44,6 +45,11 @@ class Firm(abce.Agent):
         self.lower_price = 0
         self.profit = self.profit_1 = 0
         self.last_action = (None, None)
+        # accounting
+        self.firm_id_deposit = ("firm" + str(self.id) + "_deposit")
+        self.accounts.make_stock_accounts([self.firm_id_deposit, "goods"])
+        self.housebank = "bank" + str(random.randint(0, num_banks - 1))
+
 
     def production(self):
         """
@@ -127,12 +133,47 @@ class Firm(abce.Agent):
         sells the goods to the employees
         """
         for offer in self.get_offers("produce"):
+            sender_id = offer.sender
             if offer.price >= self.price and self["produce"] >= offer.quantity:
                 self.accept(offer)
                 self.log('sales', offer.quantity)
+                # accounting:
+                self.book(debit=[(self.firm_id_deposit, 100)], credit=[("goods", 100)])
+                messages = self.get_messages("account")
+                msg_sender = ""
+                account = ""
+                for msg in messages:
+                    msg_sender = msg.sender
+                    account = msg.content
+                    if len(msg_sender) > 1 and type(msg_sender) == tuple:
+                        msg_sender = msg_sender[0] + str(msg_sender[1])
+                    if sender_id == msg_sender:
+                        self.send_envelope(account, "withdraw", sender_id)
+                        self.send_envelope(account, "amount", 100)
+                        self.send_envelope(self.housebank, "deposit", 100)
+                    else:
+                        print("WARNING: Message sender and buy offer sender DO NOT MATCH!")
+
             elif offer.price >= self.price and self["produce"] < offer.quantity:
                 self.log('sales', self["produce"])
                 self.accept(offer, quantity=self["produce"])
+                # accounting:
+                self.book(debit=[(self.firm_id_deposit, 100)], credit=[("goods", 100)])
+                messages = self.get_messages("account")
+                msg_sender = ""
+                account = ""
+                for msg in messages:
+                    msg_sender = msg.sender
+                    account = msg.content
+                    if len(msg_sender) > 1 and type(msg_sender) == tuple:
+                        msg_sender = msg_sender[0] + str(msg_sender[1])
+                    if sender_id == msg_sender:
+                        self.send_envelope(account, "withdraw", sender_id)
+                        self.send_envelope(account, "amount", 100)
+                        self.send_envelope(self.housebank, "deposit", 100)
+                    else:
+                        print("WARNING: Message sender and buy offer sender DO NOT MATCH!")
+
             elif offer.price < self.price:
                 self.reject(offer)
                 self.log('sales', 0)
@@ -149,6 +190,7 @@ class Firm(abce.Agent):
             self.wage -= self.wage_increment
             self.wage = max(0, self.wage)
         self.give("people", "money", quantity=salary)
+        self.send_envelope("people", "wage_payment", salary)
         self.salary = salary
 
     def pay_dividents(self):

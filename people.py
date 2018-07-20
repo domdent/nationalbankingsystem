@@ -1,7 +1,9 @@
 import abce
+import abcFinance
+import random
 
 
-class People(abce.Agent):
+class People(abcFinance.Agent):
 
     """
     People:
@@ -18,7 +20,7 @@ class People(abce.Agent):
         - Otherwise, they will sell the maximum
     """
 
-    def init(self, people_money, population, l, num_firms, wage_acceptance, **_):
+    def init(self, people_money, population, l, num_firms, wage_acceptance, num_banks, **_):
         self.name = "people"
         self.population = population
         self.create('money', people_money)
@@ -27,6 +29,23 @@ class People(abce.Agent):
         self.price_dict = {}
         self.l = l
         self.wage_acceptance = wage_acceptance
+        self.accounts.make_stock_accounts(["goods"])
+        self.accounts.make_flow_accounts(["consumption_expenses", "labour_value"])
+        self.num_banks = num_banks
+        # split deposits across banks
+        split_amount = float(self["money"]) / num_banks
+        for i in range(self.num_banks):
+            bank_id = "bank" + str(i) + "_deposit"
+            self.accounts.make_stock_accounts([bank_id])
+            self.accounts.book(debit=[(bank_id, split_amount)], credit=[("equity", split_amount)])
+
+    def open_bank_acc(self):
+        # for each bank send "deposit" so they can add it to their credit
+        # look into using autobook
+        for i in range(self.num_banks):
+            bank_ID = "bank" + str(i)
+            amount = self.accounts[bank_ID + "_deposit"].get_balance()[1]
+            self.send_envelope(bank_ID, "deposit", amount)
 
     def create_labor(self):
         """
@@ -75,6 +94,11 @@ class People(abce.Agent):
             firm_price = float(self.price_dict['firm', firm])
             demand = (I / q) * (q / firm_price) ** (1 / (1 - l))
             self.buy(('firm', firm), good='produce', quantity=demand, price=firm_price)
+            # Book keeping code:
+            bank_acc = "bank" + str(random.randint(0, self.num_banks - 1))
+            self.book(debit=[("goods", 100)], credit=[(bank_acc + "_deposit", 100)])
+            self.send_envelope(('firm', firm), "account", bank_acc)
+
             demand_list.append(demand)
         self.log('total_demand', sum(demand_list))
         return demand_list
@@ -133,6 +157,27 @@ class People(abce.Agent):
         for msg in price_msg:
             self.price_dict[msg.sender] = msg.content
         return self.price_dict
+
+    def create_income(self):
+        """
+        Needs to recieve message about payment and account accordingly
+        :return:
+        """
+        messages = self.get_messages("wage_payment")
+
+        for msg in messages:
+            msg_sender = msg.sender
+            wage_payment = msg.content
+            if len(msg_sender) > 1 and type(msg_sender) == tuple:
+                msg_sender = msg_sender[0] + str(msg_sender[1])
+
+        for i in range(self.num_banks):
+            bank_acc = "bank" + str(i)
+            self.book(debit=[(bank_acc + "_deposit", (100 * self.population)/self.num_banks)],
+                      credit=[("labour_value", (100 * self.population)/self.num_banks)])
+        for i in range(self.num_banks):
+            bank_acc = "bank" + str(i)
+            self.send_envelope(bank_acc, "wage", (100 * self.population)/self.num_banks)
 
 
 

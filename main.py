@@ -1,6 +1,8 @@
 import abce
+import abcFinance
 from firm import Firm
 from people import People
+
 params = dict(
     population=1000,
     people_money=1000,
