@@ -56,6 +56,10 @@ class People(abcFinance.Agent):
 
     def consumption(self):
         self.log("consumption", self["produce"])
+        # accounting
+        goods_value = self.accounts["goods"].get_balance()[1]
+        self.accounts.book(debit=[("consumption_expenses", goods_value)],
+                           credit=[("goods", goods_value)])
         self.destroy("produce")
 
     def find_q(self):

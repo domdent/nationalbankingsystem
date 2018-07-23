@@ -220,6 +220,9 @@ class Firm(abcFinance.Agent):
             # accounting
             self.accounts.book(debit=[("dividend_expenses", dividends)],
                                credit=[(self.firm_id_deposit, dividends)])
+            self.send(self.housebank, "_autobook", dict(
+                debit=[("people_deposit", dividends)],
+                credit=[(self.firm_id_deposit, dividends)]))
         self.log('dividends', max(0, dividends))
         self.dividends = dividends
 

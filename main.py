@@ -1,6 +1,7 @@
-import abce
+import abcFinance
 from firm import Firm
 from people import People
+from bank import Bank
 params = dict(
     population=1000,
     people_money=1000,
@@ -11,9 +12,7 @@ params = dict(
     num_days=2000,
 
     l=0.5,  # constant from CS equation
-
     num_days_buffer=10,  # number of days worth of wages a firm will keep after giving profits
-
     phi_upper=10,  # phi_upper * demand gives upper bound to inventory
     phi_lower=2,
     excess=1.1,  # if number of workers offered to work for firm exceeds 110% of ideal number, decrease wage
@@ -22,12 +21,14 @@ params = dict(
     worker_increment=0.01,
     productivity=1,
     wage_acceptance=1)
-simulation = abce.Simulation(name='economy', processes=1)
+
+simulation = abcFinance.Simulation(name='economy', processes=1)
 # initiate banks first
 group_of_banks = simulation.build_agents(Bank, "bank", number=params["num_banks"])
 group_of_firms = simulation.build_agents(Firm, "firm", number=params["num_firms"], **params)
 people = simulation.build_agents(People, "people", number=1, **params)
 
+group_of_banks.credit_depositors()
 
 for r in range(params["num_days"]):
     simulation.time = r
