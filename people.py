@@ -1,7 +1,7 @@
-import abce
+import abcFinance
+import random
 
-
-class People(abce.Agent):
+class People(abcFinance.Agent):
 
     """
     People:
@@ -18,7 +18,7 @@ class People(abce.Agent):
         - Otherwise, they will sell the maximum
     """
 
-    def init(self, people_money, population, l, num_firms, wage_acceptance, **_):
+    def init(self, people_money, population, l, num_firms, wage_acceptance, num_banks, **_):
         self.name = "people"
         self.population = population
         self.create('money', people_money)
@@ -27,6 +27,20 @@ class People(abce.Agent):
         self.price_dict = {}
         self.l = l
         self.wage_acceptance = wage_acceptance
+        # accounting
+        self.num_banks = num_banks
+        self.accounts.make_asset_accounts(["goods"])
+        self.accounts.make_flow_accounts(["consumption_expenses", "labour_value"])
+        split_amount = float(self["money"]) / num_banks
+        # splits up money between banks equally and sends message to banks for their records
+        for i in range(self.num_banks):
+            bank_ID = "bank" + str(i)
+            self.accounts.make_stock_accounts([bank_ID + "_deposit"])
+            self.accounts.book(debit=[(bank_ID + "_deposit", split_amount)], credit=[("equity", split_amount)])
+            amount = self.accounts[bank_ID + "_deposit"].get_balance()[1]
+            self.send_envelope(bank_ID, "deposit", amount)
+
+
 
     def create_labor(self):
         """

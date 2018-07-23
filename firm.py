@@ -1,8 +1,8 @@
-import abce
+import abcFinance
 import random
 
 
-class Firm(abce.Agent):
+class Firm(abcFinance.Agent):
     """
     Firm:
     - employs workers each round
@@ -21,7 +21,8 @@ class Firm(abce.Agent):
     - pay left over profits to workers
     """
     def init(self, firm_money, wage_increment, price_increment, worker_increment,
-             phi_upper, phi_lower, excess, num_days_buffer, productivity, num_firms, population,  **_):
+             phi_upper, phi_lower, excess, num_days_buffer, productivity, num_firms,
+             num_banks, population,  **_):
         """
         initializes starting characteristics
         """
@@ -44,6 +45,21 @@ class Firm(abce.Agent):
         self.lower_price = 0
         self.profit = self.profit_1 = 0
         self.last_action = (None, None)
+        # accounting
+        self.num_banks = num_banks
+        self.firm_id_deposit = ("firm" + str(self.id) + "_deposit")
+        self.accounts.make_asset_accounts([self.firm_id_deposit, "goods"])
+        self.accounts.make_liability_accounts(["wages_owed"])
+        self.accounts.make_flow_accounts(["capitalized_production", "wage_expenses",
+                                          "sales_revenue", "cost_of_goods_sold"])
+        self.accounts.book(debit=[(self.firm_id_deposit, self["money"])],
+                           credit=[("equity", self["money"])])
+        self.housebank = "bank" + str(random.randint(0, num_banks - 1))
+        # send message to bank to credit deposit
+        balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
+        self.send_envelope(self.housebank, "deposit", balance)
+
+
 
     def production(self):
         """
@@ -51,6 +67,10 @@ class Firm(abce.Agent):
         """
         before = self["produce"]
         self.create("produce", self.productivity * self["workers"])
+        # books at current wage price
+        goods_value = self.productivity * self["workers"] * self.wage
+        self.accounts.book(debit=[("goods", goods_value), ("wage_expenses", goods_value)],
+                           credit=[("wages_owed", goods_value), ("capitalized_production", goods_value)])
         self.log("production", self["produce"] - before)
 
     def determine_wage(self):
@@ -128,11 +148,20 @@ class Firm(abce.Agent):
         """
         for offer in self.get_offers("produce"):
             if offer.price >= self.price and self["produce"] >= offer.quantity:
+                # accounting
+                sale_value = offer.price * offer.quantity
+                goods_value = self.accounts["goods"].get_balance()[1]
+                ave_unit_cost = goods_value / self["produce"]
+                self.accounts.book(debit=[(self.firm_id_deposit, sale_value),
+                                          ("cost_of_goods_sold", ave_unit_cost * offer.quantity)
                 self.accept(offer)
                 self.log('sales', offer.quantity)
+
             elif offer.price >= self.price and self["produce"] < offer.quantity:
                 self.log('sales', self["produce"])
                 self.accept(offer, quantity=self["produce"])
+                sale_value = offer.price * self["produce"]
+
             elif offer.price < self.price:
                 self.reject(offer)
                 self.log('sales', 0)
@@ -144,11 +173,21 @@ class Firm(abce.Agent):
         gives out all money and reduces wage by 1 unit
         """
         salary = self.wage * self['workers']
+        salary_payment = self.accounts["wages_owed"].get_balance()[1]
+
         if salary > self["money"]:
             salary = self["money"]
             self.wage -= self.wage_increment
             self.wage = max(0, self.wage)
+        if salary_payment != salary:
+            print("WARNING: salary and accounting statement DO NOT MATCH!")
         self.give("people", "money", quantity=salary)
+        # accounting
+        self.accounts.book(debit=[("wages_owed", salary_payment)],
+                           credit=[(self.housebank + "_deposit", salary_payment)])
+        self.send(self.housebank, "_autobook", dict(
+            debit=[("people_deposit", salary_payment)],
+            credit=[(self.firm_id_deposit, salary_payment)]))
         self.salary = salary
 
     def pay_dividents(self):
@@ -159,7 +198,9 @@ class Firm(abce.Agent):
         dividends = self["money"] - buffer
         if dividends > 0:
             self.give("people", "money", quantity=dividends)
-
+            # accounting
+            self.accounts.book(debit=[("dividend_expenses", dividends)],
+                               credit=[(self.firm_id_deposit, dividends)])
         self.log('dividends', max(0, dividends))
         self.dividends = dividends
 

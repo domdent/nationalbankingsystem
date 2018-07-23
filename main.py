@@ -5,6 +5,7 @@ params = dict(
     population=1000,
     people_money=1000,
     num_firms=20,
+    num_banks=4,
     firm_money=2000,
 
     num_days=2000,
@@ -22,6 +23,8 @@ params = dict(
     productivity=1,
     wage_acceptance=1)
 simulation = abce.Simulation(name='economy', processes=1)
+# initiate banks first
+group_of_banks = simulation.build_agents(Bank, "bank", number=params["num_banks"])
 group_of_firms = simulation.build_agents(Firm, "firm", number=params["num_firms"], **params)
 people = simulation.build_agents(People, "people", number=1, **params)
 
