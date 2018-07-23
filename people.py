@@ -36,7 +36,8 @@ class People(abcFinance.Agent):
         for i in range(self.num_banks):
             bank_ID = "bank" + str(i)
             self.accounts.make_stock_accounts([bank_ID + "_deposit"])
-            self.accounts.book(debit=[(bank_ID + "_deposit", split_amount)], credit=[("equity", split_amount)])
+            self.accounts.book(debit=[(bank_ID + "_deposit", split_amount)],
+                               credit=[("equity", split_amount)])
             amount = self.accounts[bank_ID + "_deposit"].get_balance()[1]
             self.send_envelope(bank_ID, "deposit", amount)
 

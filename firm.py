@@ -51,7 +51,8 @@ class Firm(abcFinance.Agent):
         self.accounts.make_asset_accounts([self.firm_id_deposit, "goods"])
         self.accounts.make_liability_accounts(["wages_owed"])
         self.accounts.make_flow_accounts(["capitalized_production", "wage_expenses",
-                                          "sales_revenue", "cost_of_goods_sold"])
+                                          "sales_revenue", "cost_of_goods_sold",
+                                          "dividend_expenses"])
         self.accounts.book(debit=[(self.firm_id_deposit, self["money"])],
                            credit=[("equity", self["money"])])
         self.housebank = "bank" + str(random.randint(0, num_banks - 1))
@@ -198,12 +199,13 @@ class Firm(abcFinance.Agent):
             salary = self["money"]
             self.wage -= self.wage_increment
             self.wage = max(0, self.wage)
-        if salary_payment != salary:
+        if abs(salary_payment - salary) > 0.1:
             print("WARNING: salary and accounting statement DO NOT MATCH!")
+            print(salary, ", ", salary_payment)
         self.give("people", "money", quantity=salary)
         # accounting
         self.accounts.book(debit=[("wages_owed", salary_payment)],
-                           credit=[(self.housebank + "_deposit", salary_payment)])
+                           credit=[(self.firm_id_deposit, salary_payment)])
         self.send(self.housebank, "_autobook", dict(
             debit=[("people_deposit", salary_payment)],
             credit=[(self.firm_id_deposit, salary_payment)]))

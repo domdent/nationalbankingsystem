@@ -1,4 +1,5 @@
 import abcFinance
+import abce
 from firm import Firm
 from people import People
 from bank import Bank
@@ -6,7 +7,7 @@ params = dict(
     population=1000,
     people_money=1000,
     num_firms=20,
-    num_banks=4,
+    num_banks=2,
     firm_money=2000,
 
     num_days=2000,
@@ -20,11 +21,12 @@ params = dict(
     price_increment=0.01,
     worker_increment=0.01,
     productivity=1,
-    wage_acceptance=1)
+    wage_acceptance=1,
+    cash_reserves=10000)
 
-simulation = abcFinance.Simulation(name='economy', processes=1)
+simulation = abce.Simulation(name='economy', processes=1)
 # initiate banks first
-group_of_banks = simulation.build_agents(Bank, "bank", number=params["num_banks"])
+group_of_banks = simulation.build_agents(Bank, "bank", number=params["num_banks"], **params)
 group_of_firms = simulation.build_agents(Firm, "firm", number=params["num_firms"], **params)
 people = simulation.build_agents(People, "people", number=1, **params)
 
@@ -33,7 +35,9 @@ group_of_banks.credit_depositors()
 for r in range(params["num_days"]):
     simulation.time = r
 
-    group_of_firms.panel_log(variables=['wage', 'ideal_num_workers'], goods=['workers'])
+    group_of_firms.panel_log(variables=['wage', 'ideal_num_workers'],
+                             goods=['workers'])
+    print("test")
     people.create_labor()
 
     vacancies_list = list(group_of_firms.publish_vacencies())
