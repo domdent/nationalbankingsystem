@@ -152,15 +152,34 @@ class Firm(abcFinance.Agent):
                 sale_value = offer.price * offer.quantity
                 goods_value = self.accounts["goods"].get_balance()[1]
                 ave_unit_cost = goods_value / self["produce"]
+                cost = ave_unit_cost * offer.quantity
                 self.accounts.book(debit=[(self.firm_id_deposit, sale_value),
-                                          ("cost_of_goods_sold", ave_unit_cost * offer.quantity)
+                                          ("cost_of_goods_sold", cost)],
+                                   credit=[("sales_revenue", sale_value),
+                                           ("goods", cost)])
+                self.send(self.housebank, "_autobook", dict(
+                    debit=[("people_deposit", sale_value)],
+                    credit=[(self.firm_id_deposit, sale_value)]))
+
                 self.accept(offer)
                 self.log('sales', offer.quantity)
 
             elif offer.price >= self.price and self["produce"] < offer.quantity:
-                self.log('sales', self["produce"])
-                self.accept(offer, quantity=self["produce"])
+                # accounting
                 sale_value = offer.price * self["produce"]
+                goods_value = self.accounts["goods"].get_balance()[1]
+                ave_unit_cost = goods_value / self["produce"]
+                cost = ave_unit_cost * self["produce"]
+                self.accounts.book(debit=[(self.firm_id_deposit, sale_value),
+                                          ("cost_of_goods_sold", cost)],
+                                   credit=[("sales_revenue", sale_value),
+                                           ("goods", cost)])
+                self.send(self.housebank, "_autobook", dict(
+                    debit=[("people_deposit", sale_value)],
+                    credit=[(self.firm_id_deposit, sale_value)]))
+
+                self.accept(offer, quantity=self["produce"])
+                self.log('sales', self["produce"])
 
             elif offer.price < self.price:
                 self.reject(offer)
