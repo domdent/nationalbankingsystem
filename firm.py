@@ -236,7 +236,10 @@ class Firm(abcFinance.Agent):
             self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
                 debit=[(self.firm_id_deposit, dividends)],
                 credit=[("people_deposit", dividends)])))
-        self.log('dividends', max(0, dividends))
+            self.send("people", "abce_forceexecute", ("_autobook", dict(
+                debit=[(self.housebank + "_deposit", dividends)],
+                credit=[("salary_income", dividends)])))
+            self.log('dividends', max(0, dividends))
         self.dividends = dividends
 
     def getvalue_ideal_num_workers(self):
