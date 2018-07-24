@@ -29,8 +29,8 @@ class People(abcFinance.Agent):
         self.wage_acceptance = wage_acceptance
         # accounting
         self.num_banks = num_banks
-        self.accounts.make_asset_accounts(["goods"])
-        self.accounts.make_flow_accounts(["consumption_expenses", "labour_value"])
+        self.accounts.make_stock_accounts(["goods"])
+        self.accounts.make_flow_accounts(["consumption_expenses", "salary_income"])
         split_amount = float(self["money"]) / num_banks
         # splits up money between banks equally and sends message to banks for their records
         for i in range(self.num_banks):
@@ -38,9 +38,13 @@ class People(abcFinance.Agent):
             self.accounts.make_stock_accounts([bank_ID + "_deposit"])
             self.accounts.book(debit=[(bank_ID + "_deposit", split_amount)],
                                credit=[("equity", split_amount)])
+
+    def open_bank_acc(self):
+        # sends message to open bank account
+        for i in range(self.num_banks):
+            bank_ID = "bank" + str(i)
             amount = self.accounts[bank_ID + "_deposit"].get_balance()[1]
             self.send_envelope(bank_ID, "deposit", amount)
-
 
 
     def create_labor(self):
@@ -152,6 +156,10 @@ class People(abcFinance.Agent):
         for msg in price_msg:
             self.price_dict[msg.sender] = msg.content
         return self.price_dict
+
+    def print_balance_statement(self):
+        print(self.name)
+        self.print_balance_sheet()
 
 
 

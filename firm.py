@@ -48,18 +48,19 @@ class Firm(abcFinance.Agent):
         # accounting
         self.num_banks = num_banks
         self.firm_id_deposit = ("firm" + str(self.id) + "_deposit")
-        self.accounts.make_asset_accounts([self.firm_id_deposit, "goods"])
-        self.accounts.make_liability_accounts(["wages_owed"])
+        self.accounts.make_stock_accounts([self.firm_id_deposit, "goods", "wages_owed"])
         self.accounts.make_flow_accounts(["capitalized_production", "wage_expenses",
                                           "sales_revenue", "cost_of_goods_sold",
                                           "dividend_expenses"])
         self.accounts.book(debit=[(self.firm_id_deposit, self["money"])],
                            credit=[("equity", self["money"])])
         self.housebank = "bank" + str(random.randint(0, num_banks - 1))
-        # send message to bank to credit deposit
+
+
+    def open_bank_acc(self):
+        # sends message to open bank account
         balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
         self.send_envelope(self.housebank, "deposit", balance)
-
 
 
     def production(self):
@@ -158,9 +159,9 @@ class Firm(abcFinance.Agent):
                                           ("cost_of_goods_sold", cost)],
                                    credit=[("sales_revenue", sale_value),
                                            ("goods", cost)])
-                self.send(self.housebank, "_autobook", dict(
+                self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
                     debit=[("people_deposit", sale_value)],
-                    credit=[(self.firm_id_deposit, sale_value)]))
+                    credit=[(self.firm_id_deposit, sale_value)])))
 
                 self.accept(offer)
                 self.log('sales', offer.quantity)
@@ -175,9 +176,9 @@ class Firm(abcFinance.Agent):
                                           ("cost_of_goods_sold", cost)],
                                    credit=[("sales_revenue", sale_value),
                                            ("goods", cost)])
-                self.send(self.housebank, "_autobook", dict(
+                self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
                     debit=[("people_deposit", sale_value)],
-                    credit=[(self.firm_id_deposit, sale_value)]))
+                    credit=[(self.firm_id_deposit, sale_value)])))
 
                 self.accept(offer, quantity=self["produce"])
                 self.log('sales', self["produce"])
@@ -206,9 +207,14 @@ class Firm(abcFinance.Agent):
         # accounting
         self.accounts.book(debit=[("wages_owed", salary_payment)],
                            credit=[(self.firm_id_deposit, salary_payment)])
-        self.send(self.housebank, "_autobook", dict(
-            debit=[("people_deposit", salary_payment)],
-            credit=[(self.firm_id_deposit, salary_payment)]))
+        self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+            debit=[(self.firm_id_deposit, salary_payment)],
+            credit=[("people_deposit", salary_payment)])))
+        self.send("people", "abce_forceexecute", ("_autobook", dict(
+            debit=[(self.housebank + "_deposit", salary_payment)],
+            credit=[("salary_income", salary_payment)])))
+
+
         self.salary = salary
 
     def pay_dividents(self):
@@ -222,9 +228,9 @@ class Firm(abcFinance.Agent):
             # accounting
             self.accounts.book(debit=[("dividend_expenses", dividends)],
                                credit=[(self.firm_id_deposit, dividends)])
-            self.send(self.housebank, "_autobook", dict(
-                debit=[("people_deposit", dividends)],
-                credit=[(self.firm_id_deposit, dividends)]))
+            self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+                debit=[(self.firm_id_deposit, dividends)],
+                credit=[("people_deposit", dividends)])))
         self.log('dividends', max(0, dividends))
         self.dividends = dividends
 
@@ -255,3 +261,7 @@ class Firm(abcFinance.Agent):
         self.destroy('workers')
         self.log('wage_share', self.salary / (self.salary + self.dividends))
         self.log('tot_wage_bill', self.salary)
+
+    def print_balance_statement(self):
+        print(self.name)
+        self.print_balance_sheet()

@@ -30,7 +30,10 @@ group_of_banks = simulation.build_agents(Bank, "bank", number=params["num_banks"
 group_of_firms = simulation.build_agents(Firm, "firm", number=params["num_firms"], **params)
 people = simulation.build_agents(People, "people", number=1, **params)
 
+(people + group_of_firms).open_bank_acc()
 group_of_banks.credit_depositors()
+
+all_agents = group_of_firms + group_of_banks + people
 
 for r in range(params["num_days"]):
     simulation.time = r
@@ -59,6 +62,11 @@ for r in range(params["num_days"]):
     (people + group_of_firms).destroy_unused_labor()
     people.consumption()
     group_of_firms.determine_profits()
+    all_agents.book_end_of_period()
+    all_agents.check_for_lost_messages()
+
+all_agents.print_balance_statement()
+
 
 print('done')
 
