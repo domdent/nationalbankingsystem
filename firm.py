@@ -162,7 +162,9 @@ class Firm(abcFinance.Agent):
                 self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
                     debit=[("people_deposit", sale_value)],
                     credit=[(self.firm_id_deposit, sale_value)])))
-
+                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                    debit=[("goods", sale_value)],
+                    credit=[(self.housebank + "_deposit", sale_value)])))
                 self.accept(offer)
                 self.log('sales', offer.quantity)
 
@@ -179,6 +181,9 @@ class Firm(abcFinance.Agent):
                 self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
                     debit=[("people_deposit", sale_value)],
                     credit=[(self.firm_id_deposit, sale_value)])))
+                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                    debit=[("goods", sale_value)],
+                    credit=[(self.housebank + "_deposit", sale_value)])))
 
                 self.accept(offer, quantity=self["produce"])
                 self.log('sales', self["produce"])

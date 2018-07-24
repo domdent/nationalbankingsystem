@@ -30,7 +30,8 @@ class People(abcFinance.Agent):
         # accounting
         self.num_banks = num_banks
         self.accounts.make_stock_accounts(["goods"])
-        self.accounts.make_flow_accounts(["consumption_expenses", "salary_income"])
+        self.accounts.make_flow_accounts(["consumption_expenses", "salary_income",
+                                          "buying_expenses"])
         split_amount = float(self["money"]) / num_banks
         # splits up money between banks equally and sends message to banks for their records
         for i in range(self.num_banks):
