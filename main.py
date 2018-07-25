@@ -10,7 +10,7 @@ params = dict(
     num_banks=2,
     firm_money=2000,
 
-    num_days=2000,
+    num_days=1000,
 
     l=0.5,  # constant from CS equation
     num_days_buffer=10,  # number of days worth of wages a firm will keep after giving profits
@@ -64,6 +64,7 @@ for r in range(params["num_days"]):
     group_of_firms.determine_profits()
     all_agents.book_end_of_period()
     all_agents.check_for_lost_messages()
+    people.adjust_accounts()
 
 all_agents.print_balance_statement()
 

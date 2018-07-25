@@ -10,7 +10,7 @@ class Bank(abcFinance.Agent):
         """
         self.name = "bank" + str(self.id)
 
-        self.accounts.make_stock_accounts(["cash", "Equity", "customer_assets"])
+        self.accounts.make_stock_accounts(["cash", "Equity"])
         self.book(debit=[("cash", cash_reserves)],
                   credit=[("Equity", cash_reserves)])
         self.create("cash", cash_reserves)
@@ -26,7 +26,7 @@ class Bank(abcFinance.Agent):
             if len(sender) > 1 and type(sender) == tuple:
                 sender = sender[0] + str(sender[1])
             self.accounts.make_stock_accounts([(sender + "_deposit")])
-            self.book(debit=[("customer_assets", amount)],
+            self.book(debit=[("cash", amount)],
                       credit=[(sender + "_deposit", amount)])
 
     def print_balance_statement(self):

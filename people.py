@@ -81,7 +81,8 @@ class People(abcFinance.Agent):
 
     def buy_goods(self):
         """
-        Calculates the demand from each firm and makes buy offers for produce of this amount at this value, or as much
+        Calculates the demand from each firm and makes buy offers for produce of
+        this amount at this value, or as much
         as the people can afford
 
         Args:   q, l parameters as defined in the C-D utility function
@@ -162,6 +163,54 @@ class People(abcFinance.Agent):
         print(self.name)
         self.print_balance_sheet()
 
+    def adjust_accounts(self):
+        """
+        if the people owe some bank some money but own the same amount in
+        another account, they will move their funds around
+        """
+        total_funds = 0
+        account_amount_list = []
+        # this for loop calculates total funds subtracting credit accounts, adding debit accounts
+        for i in range(self.num_banks):
+            bank_ID = "bank" + str(i)
+            multiplier = 1
+            if self.accounts[bank_ID + "_deposit"].get_balance()[0] == abcFinance.AccountSide.CREDIT:
+                total_funds -= self.accounts[bank_ID + "_deposit"].get_balance()[1]
+                multiplier *= -1
+            elif self.accounts[bank_ID + "_deposit"].get_balance()[0] == abcFinance.AccountSide.DEBIT:
+                total_funds += self.accounts[bank_ID + "_deposit"].get_balance()[1]
+            account_amount_list.append(multiplier * self.accounts[bank_ID + "_deposit"].get_balance()[1])
+        funds_per_acc = total_funds / self.num_banks
+        funds_above_ave = [[] for _ in range(self.num_banks)]
+        print(account_amount_list)
 
+        for i in range(self.num_banks):
+            # calculates the difference from the average amount per bank acc and makes list of lists
+            difference = account_amount_list[i] - funds_per_acc
+            funds_above_ave[i].append(difference)
+            funds_above_ave[i].append(i)
+        # sorts list based on highest amount first, has another element idicating bank id number
+        funds_above_ave.sort(key=lambda x: float(x[0]), reverse=True)
+        current_amount = 0
 
+        for i in range(0, self.num_banks - 1):
+            # each iteration, above-average deposits are moved to next account
+            bank_ID = "bank" + str(funds_above_ave[i][1])
+            next_bank = "bank" + str(funds_above_ave[i + 1][1])
+            current_amount += funds_above_ave[i][0]
+            if (current_amount - 0.00001) > 0:
+                self.move_funds(bank_ID, next_bank, current_amount)
 
+    def move_funds(self, from_account, to_account, amount):
+        """
+        moves across deposits from accounts that the people agent owns
+        in personal booking statements and bank's booking statements
+        """
+        self.accounts.book(debit=[(to_account + "_deposit", amount)],
+                           credit=[(from_account + "_deposit", amount)])
+        self.send(from_account, "abce_forceexecute", ("_autobook", dict(
+            debit=[("people_deposit", amount)],
+            credit=[("cash", amount)])))
+        self.send(to_account, "abce_forceexecute", ("_autobook", dict(
+            debit=[("cash", amount)],
+            credit=[("people_deposit", amount)])))
