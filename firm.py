@@ -210,14 +210,14 @@ class Firm(abcFinance.Agent):
             print(salary, ", ", salary_payment)
         self.give("people", "money", quantity=salary)
         # accounting
-        self.accounts.book(debit=[("wages_owed", salary_payment)],
-                           credit=[(self.firm_id_deposit, salary_payment)])
+        self.accounts.book(debit=[("wages_owed", salary)],
+                           credit=[(self.firm_id_deposit, salary)])
         self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
-            debit=[(self.firm_id_deposit, salary_payment)],
-            credit=[("people_deposit", salary_payment)])))
+            debit=[(self.firm_id_deposit, salary)],
+            credit=[("people_deposit", salary)])))
         self.send("people", "abce_forceexecute", ("_autobook", dict(
-            debit=[(self.housebank + "_deposit", salary_payment)],
-            credit=[("salary_income", salary_payment)])))
+            debit=[(self.housebank + "_deposit", salary)],
+            credit=[("salary_income", salary)])))
 
 
         self.salary = salary
@@ -270,6 +270,9 @@ class Firm(abcFinance.Agent):
         self.log('wage_share', self.salary / (self.salary + self.dividends))
         self.log('tot_wage_bill', self.salary)
 
+
     def print_balance_statement(self):
         print(self.name)
+        self.print_profit_and_loss()
+        self.book_end_of_period()
         self.print_balance_sheet()

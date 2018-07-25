@@ -6,11 +6,11 @@ from bank import Bank
 params = dict(
     population=1000,
     people_money=1000,
-    num_firms=20,
+    num_firms=2,
     num_banks=2,
     firm_money=2000,
 
-    num_days=1000,
+    num_days=20,
 
     l=0.5,  # constant from CS equation
     num_days_buffer=10,  # number of days worth of wages a firm will keep after giving profits
@@ -62,11 +62,14 @@ for r in range(params["num_days"]):
     (people + group_of_firms).destroy_unused_labor()
     people.consumption()
     group_of_firms.determine_profits()
-    all_agents.book_end_of_period()
     all_agents.check_for_lost_messages()
     people.adjust_accounts()
+    all_agents.print_balance_statement()
 
-all_agents.print_balance_statement()
+
+
+
+#all_agents.print_balance_statement()
 
 
 print('done')

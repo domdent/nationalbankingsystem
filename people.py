@@ -159,8 +159,11 @@ class People(abcFinance.Agent):
             self.price_dict[msg.sender] = msg.content
         return self.price_dict
 
+
     def print_balance_statement(self):
         print(self.name)
+        self.print_profit_and_loss()
+        self.book_end_of_period()
         self.print_balance_sheet()
 
     def adjust_accounts(self):
@@ -198,7 +201,7 @@ class People(abcFinance.Agent):
             bank_ID = "bank" + str(funds_above_ave[i][1])
             next_bank = "bank" + str(funds_above_ave[i + 1][1])
             current_amount += funds_above_ave[i][0]
-            if (current_amount - 0.00001) > 0:
+            if current_amount > 0:
                 self.move_funds(bank_ID, next_bank, current_amount)
 
     def move_funds(self, from_account, to_account, amount):
