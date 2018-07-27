@@ -40,8 +40,9 @@ class Bank(abcFinance.Agent):
         """
 
         """
+        print(self.name, self.interest)
         for i in range(self.num_firms):
-            firm_id = "firm" + str(i)
+            firm_id = ("firm", i)
             self.send_envelope(firm_id, "interest", self.interest)
 
     def determine_interest(self):
@@ -58,13 +59,13 @@ class Bank(abcFinance.Agent):
         # ratio between 3-8 is good
         if self.ratio > 8:
             if self.ratio > 9:
-                self.interest *= 0.9
+                self.interest *= 1.15
             else:
-                self.interest *= 0.95
+                self.interest *= 1.05
         if self.ratio < 3:
-            self.interest *= 1.1 + ((3 - self.ratio) / 50)
+            self.interest *= 0.9 - ((3 - self.ratio) / 50)
         # interest has to be at least 0.1 %
-        self.interest = max(self.interest, 0.001)
+        self.interest = max(self.interest, 0.000001)
 
     def open_new_acc(self):
         messages = self.get_messages("account")

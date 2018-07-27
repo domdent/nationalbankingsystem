@@ -10,7 +10,7 @@ params = dict(
     num_banks=2,
     firm_money=2000,
 
-    num_days=5,
+    num_days=200,
 
     l=0.5,  # constant from CS equation
     num_days_buffer=10,  # number of days worth of wages a firm will keep after giving profits
@@ -42,7 +42,14 @@ for r in range(params["num_days"]):
                              goods=['workers'])
     print("test")
     people.create_labor()
+
+    # LOANS:
     group_of_banks.determine_interest()
+    group_of_banks.send_interest_rates()
+    group_of_firms.request_loan()
+    group_of_banks.open_new_acc()
+    group_of_banks.close_accounts()
+    group_of_banks.grant_loans()
 
     vacancies_list = list(group_of_firms.publish_vacencies())
 
@@ -50,6 +57,10 @@ for r in range(params["num_days"]):
 
     group_of_firms.production()
     group_of_firms.pay_workers()
+
+    # LOANS
+    group_of_firms.loan_repayment()
+
     group_of_firms.pay_dividents()
     group_of_firms.send_prices()
     people.get_prices()
@@ -65,7 +76,6 @@ for r in range(params["num_days"]):
     group_of_firms.determine_profits()
     all_agents.check_for_lost_messages()
     people.adjust_accounts()
-    print("demand:", list(demand))
 
 
 all_agents.print_balance_statement()

@@ -296,15 +296,13 @@ class Firm(abcFinance.Agent):
         for msg in messages:
             if msg.sender == self.housebank:
                 housebank_rate = msg.content
-            print("sender: ", msg.sender)
-            interest[count].append = msg.sender
-            interest[count].append = msg.content
-            if len(sender) > 1 and type(sender) == tuple:
-                sender = sender[0] + str(sender[1])
+            interest[count].append(msg.sender)
+            interest[count].append(msg.content)
             count += 1
 
         interest.sort(key=lambda x: float(x[1]))
 
+        print(interest)
         # chance of changing bank for better interest rate on loan if demand condition satisfied:
         if interest[0][0] != self.housebank and self.demand > balance / self.wage:
             prob_change = (housebank_rate - interest[0][1]) / housebank_rate
