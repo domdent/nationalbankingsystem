@@ -162,8 +162,8 @@ class People(abcFinance.Agent):
 
     def print_balance_statement(self):
         print(self.name)
-        self.print_profit_and_loss()
-        self.book_end_of_period()
+    #    self.print_profit_and_loss()
+     #   self.book_end_of_period()
         self.print_balance_sheet()
 
     def adjust_accounts(self):

@@ -12,11 +12,12 @@ class Bank(abcFinance.Agent):
         self.name = "bank" + str(self.id)
 
         self.accounts.make_stock_accounts(["cash", "Equity"])
+        self.accounts.make_flow_accounts(["interest_income"])
         self.book(debit=[("cash", cash_reserves)],
                   credit=[("Equity", cash_reserves)])
         self.create("cash", cash_reserves)
         self.num_firms = num_firms
-        self.interest = random.uniform(1, 5)
+        self.interest = random.uniform(0.01, 0.05)  # between 1% and 5%
         self.account_list = []
         self.ratio = 0
 
@@ -113,12 +114,14 @@ class Bank(abcFinance.Agent):
             self.send(sender, "abce_forceexecute", ("_autobook", dict(
                 debit=[(self.firm_id_deposit, amount * scaling)],
                 credit=[("loan_liabilities", amount * scaling)])))
+            loan = [amount * scaling, self.interest]
+            self.send_envelope(sender, "loan_details", loan)
 
 
 
 
     def print_balance_statement(self):
         print(self.name)
-        self.print_profit_and_loss()
-        self.book_end_of_period()
+       # self.print_profit_and_loss()
+       # self.book_end_of_period()
         self.print_balance_sheet()

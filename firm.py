@@ -51,12 +51,13 @@ class Firm(abcFinance.Agent):
         self.accounts.make_stock_accounts([self.firm_id_deposit, "goods", "wages_owed"])
         self.accounts.make_flow_accounts(["capitalized_production", "wage_expenses",
                                           "sales_revenue", "cost_of_goods_sold",
-                                          "dividend_expenses"])
+                                          "dividend_expenses", "interest_expenses"])
         self.accounts.book(debit=[(self.firm_id_deposit, self["money"])],
                            credit=[("equity", self["money"])])
         self.housebank = "bank" + str(random.randint(0, num_banks - 1))
         self.demand = 0
         self.opened_loan_account = False
+        self.own_loan = False
 
 
     def open_bank_acc(self):
@@ -276,8 +277,8 @@ class Firm(abcFinance.Agent):
 
     def print_balance_statement(self):
         print(self.name)
-        self.print_profit_and_loss()
-        self.book_end_of_period()
+     #   self.print_profit_and_loss()
+      #  self.book_end_of_period()
         self.print_balance_sheet()
 
     def request_loan(self):
@@ -321,8 +322,7 @@ class Firm(abcFinance.Agent):
                     self.accounts.make_stock_accounts(["loan_liabilities"])
                     self.opened_loan_account = True
                 self.send_envelope(self.housebank, "loan", loan)
-
-
+                self.own_loan = True
 
     def move_banks(self, new_bank):
         """
@@ -338,4 +338,28 @@ class Firm(abcFinance.Agent):
         # open account at new bank
         self.send_envelope(new_bank, "account", balance)
         # needs to be recieved at bank's end and accounted for
+
+    def loan_repayment(self):
+        """
+
+        """
+        if self.own_loan == True:
+            messages = self.get_messages("loan_details")
+            for msg in messages:
+                # loan is list with given loan amount [0] and interest [1]
+                loan = msg.content
+                amount = loan[0]
+                interest_payment = loan[1]*loan[0]
+                self.accounts.book(debit=[("interest_expenses", interest_payment)],
+                                   credit=[(self.firm_id_deposit, interest_payment)])
+                self.accounts.book(debit=[("loan_liabilities", amount)],
+                                   credit=[(self.firm_id_deposit, amount)])
+                self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+                              debit=[(self.firm_id_deposit, interest_payment)],
+                              credit=[("interest_income", interest_payment)])))
+                self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+                              debit=[(self.firm_id_deposit, amount)],
+                              credit=[("firm" + str(self.id) + "_loan", amount)])))
+
+
 

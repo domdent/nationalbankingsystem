@@ -42,6 +42,7 @@ for r in range(params["num_days"]):
                              goods=['workers'])
     print("test")
     people.create_labor()
+    group_of_banks.determine_interest()
 
     vacancies_list = list(group_of_firms.publish_vacencies())
 
