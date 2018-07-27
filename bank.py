@@ -1,11 +1,12 @@
 import abcFinance
+import random
 
 class Bank(abcFinance.Agent):
     """
     Bank
     """
 
-    def init(self, cash_reserves, **_):
+    def init(self, cash_reserves, num_firms, **_):
         """
         """
         self.name = "bank" + str(self.id)
@@ -14,6 +15,8 @@ class Bank(abcFinance.Agent):
         self.book(debit=[("cash", cash_reserves)],
                   credit=[("Equity", cash_reserves)])
         self.create("cash", cash_reserves)
+        self.num_firms = num_firms
+        self.interest = random.uniform(1, 5)
 
     def credit_depositors(self):
         """
@@ -34,3 +37,52 @@ class Bank(abcFinance.Agent):
         self.print_profit_and_loss()
         self.book_end_of_period()
         self.print_balance_sheet()
+
+    def send_interest_rates(self):
+        """
+
+        """
+        for i in range(self.num_firms):
+            firm_id = "firm" + str(i)
+            self.send_envelope(firm_id, "interest", self.interest)
+
+    def determine_interest(self):
+        """
+        See how much of cash/deposit limit (1:10) is full
+        """
+        cash = self.accounts["cash"].get_balance()[1]
+        deposits = 0
+        for i in range(self.num_firms):
+            firm_deposit = self.accounts["firm" + str(i) + "_deposit"].get_balance()[1]
+            deposits += firm_deposit
+        deposits += self.accounts["people_deposit"].get_balance()[1]
+
+        ratio = deposits / cash
+
+        # ratio between 2-8 is good
+        if ratio > 8:
+            self.interest *= 0.95
+
+        if ratio < 3:
+            self.interest = (3 - ratio) 
+
+
+
+
+
+
+
+#   def grant_loans(self):
+
+
+
+
+
+
+
+
+
+
+
+
+

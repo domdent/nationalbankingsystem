@@ -55,6 +55,7 @@ class Firm(abcFinance.Agent):
         self.accounts.book(debit=[(self.firm_id_deposit, self["money"])],
                            credit=[("equity", self["money"])])
         self.housebank = "bank" + str(random.randint(0, num_banks - 1))
+        self.demand = 0
 
 
     def open_bank_acc(self):
@@ -149,6 +150,7 @@ class Firm(abcFinance.Agent):
         sells the goods to the employees
         """
         for offer in self.get_offers("produce"):
+            self.demand = offer.quantity
             if offer.price >= self.price and self["produce"] >= offer.quantity:
                 # accounting
                 sale_value = offer.price * offer.quantity
@@ -276,3 +278,39 @@ class Firm(abcFinance.Agent):
         self.print_profit_and_loss()
         self.book_end_of_period()
         self.print_balance_sheet()
+
+    def request_loan(self):
+        """
+        request a loan
+        """
+        balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
+        # get all interest rates from banks
+        interest = [[] for _ in range(self.num_banks)]
+        messages = self.get_messages("interest")
+        count = 0
+        housebank_rate = 0
+
+        for msg in messages:
+            if msg.sender == self.housebank:
+                housebank_rate = msg.content
+            print("sender: ", msg.sender)
+            interest[count].append = msg.sender
+            interest[count].append = msg.content
+            if len(sender) > 1 and type(sender) == tuple:
+                sender = sender[0] + str(sender[1])
+            count += 1
+
+        interest.sort(key=lambda x: float(x[1]))
+
+        # chance of changing bank for better interest rate on loan if demand condition satisfied:
+        if interest[0][0] != self.housebank and self.demand > balance / self.wage:
+            prob_change = (housebank_rate - interest[0][1]) / housebank_rate
+            if random.uniform(0, 1) < prob_change:
+                self.housebank = interest[0][0]
+                housebank_rate = interest[0][1]
+                # NEED TO ADD ACCOUNTING
+
+
+        # request loan
+        if self.demand > balance / self.wage and housebank_rate < (self.price / self.wage) - 1:
+            loan = self.demand * self.wage - balance
