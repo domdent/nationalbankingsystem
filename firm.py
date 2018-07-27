@@ -56,6 +56,7 @@ class Firm(abcFinance.Agent):
                            credit=[("equity", self["money"])])
         self.housebank = "bank" + str(random.randint(0, num_banks - 1))
         self.demand = 0
+        self.opened_loan_account = False
 
 
     def open_bank_acc(self):
@@ -289,6 +290,7 @@ class Firm(abcFinance.Agent):
         messages = self.get_messages("interest")
         count = 0
         housebank_rate = 0
+        loan = 0
 
         for msg in messages:
             if msg.sender == self.housebank:
@@ -306,11 +308,34 @@ class Firm(abcFinance.Agent):
         if interest[0][0] != self.housebank and self.demand > balance / self.wage:
             prob_change = (housebank_rate - interest[0][1]) / housebank_rate
             if random.uniform(0, 1) < prob_change:
+                # Fn. that does accounting statements and sends new bank a request
+                self.move_banks(interest[0][0])
                 self.housebank = interest[0][0]
                 housebank_rate = interest[0][1]
-                # NEED TO ADD ACCOUNTING
-
 
         # request loan
         if self.demand > balance / self.wage and housebank_rate < (self.price / self.wage) - 1:
             loan = self.demand * self.wage - balance
+            if loan > 0:
+                if self.opened_loan_account == False:
+                    self.accounts.make_stock_accounts(["loan_liabilities"])
+                    self.opened_loan_account = True
+                self.send_envelope(self.housebank, "loan", loan)
+
+
+
+    def move_banks(self, new_bank):
+        """
+        moves across deposits from accounts that the people agent owns
+        in personal booking statements and bank's booking statements
+        """
+        balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
+
+        self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+            debit=[(self.firm_id_deposit, balance)],
+            credit=[("cash", balance)])))
+        self.send_envelope(self.housebank, "close", self.firm_id_deposit)
+        # open account at new bank
+        self.send_envelope(new_bank, "account", balance)
+        # needs to be recieved at bank's end and accounted for
+
