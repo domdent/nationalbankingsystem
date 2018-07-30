@@ -92,6 +92,8 @@ class Firm(abcFinance.Agent):
         elif self.ideal_num_workers == self['workers']:
             max_employees = messages[0]
             if max_employees > self.excess * self.ideal_num_workers:
+                print("Decreasing wage")
+                print(max_employees, self.ideal_num_workers)
                 self.wage -= random.uniform(0, self.wage_increment * self.wage)
                 if self.wage < 0:
                     self.wage = 0
@@ -314,6 +316,7 @@ class Firm(abcFinance.Agent):
             print("WANT LOAN")
             loan = self.demand * self.wage - balance
             if loan > 0:
+                print("SENDING FOR LOAN")
                 if self.opened_loan_account == False:
                     self.accounts.make_stock_accounts(["loan_liabilities"])
                     self.opened_loan_account = True
@@ -342,6 +345,7 @@ class Firm(abcFinance.Agent):
         if self.own_loan == True:
             messages = self.get_messages("loan_details")
             for msg in messages:
+                print("paying loan")
                 # loan is list with given loan amount [0] and interest [1]
                 loan = msg.content
                 amount = loan[0]
@@ -356,6 +360,3 @@ class Firm(abcFinance.Agent):
                 self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
                               debit=[(self.firm_id_deposit, amount)],
                               credit=[("firm" + str(self.id) + "_loan", amount)])))
-
-
-

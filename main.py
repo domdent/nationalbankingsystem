@@ -4,25 +4,25 @@ from firm import Firm
 from people import People
 from bank import Bank
 params = dict(
-    population=1000,
+    population=500,
     people_money=20000,
-    num_firms=20,
-    num_banks=2,
-    firm_money=100,
+    num_firms=40,
+    num_banks=4,
+    firm_money=1800,
 
-    num_days=50,
+    num_days=1000,
 
     l=0.5,  # constant from CS equation
     num_days_buffer=10,  # number of days worth of wages a firm will keep after giving profits
-    phi_upper=10,  # phi_upper * demand gives upper bound to inventory
+    phi_upper=12,  # phi_upper * demand gives upper bound to inventory
     phi_lower=2,
-    excess=1.1,  # if number of workers offered to work for firm exceeds 110% of ideal number, decrease wage
+    excess=2,  # if number of workers offered to work for firm exceeds 110% of ideal number, decrease wage
     wage_increment=0.1,
     price_increment=0.1,
     worker_increment=0.1,
     productivity=1,
     wage_acceptance=1,
-    cash_reserves=10000)
+    cash_reserves=500)
 
 simulation = abce.Simulation(name='economy', processes=1)
 # initiate banks first
@@ -76,6 +76,7 @@ for r in range(params["num_days"]):
     people.consumption()
     all_agents.check_for_lost_messages()
     people.adjust_accounts()
+    group_of_banks.book_end_of_period()
 
 
 all_agents.print_balance_statement()
@@ -88,3 +89,12 @@ print('done')
 
 simulation.graph()
 simulation.finalize()
+
+"""
+Currently no where near the lower bound of cash/loan ratio, as we have one day
+loans and when we call the "determine_interest" fn. there are no outstanding 
+loans and therefore a 1:1 ratio.
+Should we adjust ideal_num_workers, so that the value can be above what can be
+afforded so then we can encourage loans to fulfill that value. Currently we just 
+set the variable to a value that can be afforded.
+"""
