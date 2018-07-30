@@ -58,6 +58,7 @@ class Firm(abcFinance.Agent):
         self.demand = 0
         self.opened_loan_account = False
         self.own_loan = False
+        self.create("workers", 0)
 
 
     def open_bank_acc(self):
@@ -110,10 +111,22 @@ class Firm(abcFinance.Agent):
         self.log('lower_inv', self.lower_inv)
         self.log('demand', list(demand)[self.id])
 
-    def determine_profits(self):
+    def pay_dividends(self):
         self.profit_1 = self.profit
-        self.profit = self['money'] - self.last_round_money + self.dividends
-        self.last_round_money = self['money']
+        self.profits = dividends = self['money'] - self.last_round_money
+        if dividends > 0:
+            self.give("people", "money", quantity=dividends)
+            # accounting
+            self.accounts.book(debit=[("dividend_expenses", dividends)],
+                               credit=[(self.firm_id_deposit, dividends)])
+            self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+                debit=[(self.firm_id_deposit, dividends)],
+                credit=[("people_deposit", dividends)])))
+            self.send("people", "abce_forceexecute", ("_autobook", dict(
+                debit=[(self.housebank + "_deposit", dividends)],
+                credit=[("salary_income", dividends)])))
+
+        self.last_round_money = self["money"]
 
     def expand_or_change_price(self):
         profitable = self.profit >= self.profit_1
@@ -136,6 +149,8 @@ class Firm(abcFinance.Agent):
             if self.last_action != ('price', '+'):
                 if self['workers'] >= self.ideal_num_workers:
                     self.ideal_num_workers += random.uniform(0, self.worker_increment * self.ideal_num_workers)
+                    if self.ideal_num_workers > self["money"] / self.wage:
+                        print("Ideal_num_workers > money / wage")
             elif self.last_action != ('ideal_num_workers', '+'):
                 self.price += random.uniform(0, self.price_increment * self.price)
             else:
@@ -176,8 +191,7 @@ class Firm(abcFinance.Agent):
                 # accounting
                 sale_value = offer.price * self["produce"]
                 goods_value = self.accounts["goods"].get_balance()[1]
-                ave_unit_cost = goods_value / self["produce"]
-                cost = ave_unit_cost * self["produce"]
+                cost = goods_value
                 self.accounts.book(debit=[(self.firm_id_deposit, sale_value),
                                           ("cost_of_goods_sold", cost)],
                                    credit=[("sales_revenue", sale_value),
@@ -201,6 +215,7 @@ class Firm(abcFinance.Agent):
         pays the workers
         if the salary owed is greater than owned money:
         gives out all money and reduces wage by 1 unit
+        should edit this and take out loan for payments
         """
         salary = self.wage * self['workers']
         salary_payment = self.accounts["wages_owed"].get_balance()[1]
@@ -222,29 +237,8 @@ class Firm(abcFinance.Agent):
         self.send("people", "abce_forceexecute", ("_autobook", dict(
             debit=[(self.housebank + "_deposit", salary)],
             credit=[("salary_income", salary)])))
-
-
         self.salary = salary
 
-    def pay_dividents(self):
-        """
-        pays workers/bosses (same agent) the extra profits
-        """
-        buffer = self.num_days_buffer * self.wage * self.ideal_num_workers
-        dividends = self["money"] - buffer
-        if dividends > 0:
-            self.give("people", "money", quantity=dividends)
-            # accounting
-            self.accounts.book(debit=[("dividend_expenses", dividends)],
-                               credit=[(self.firm_id_deposit, dividends)])
-            self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
-                debit=[(self.firm_id_deposit, dividends)],
-                credit=[("people_deposit", dividends)])))
-            self.send("people", "abce_forceexecute", ("_autobook", dict(
-                debit=[(self.housebank + "_deposit", dividends)],
-                credit=[("salary_income", dividends)])))
-            self.log('dividends', max(0, dividends))
-        self.dividends = dividends
 
     def getvalue_ideal_num_workers(self):
         return (self.name, self.ideal_num_workers)
@@ -253,6 +247,8 @@ class Firm(abcFinance.Agent):
         return self.wage
 
     def publish_vacencies(self):
+        if self.ideal_num_workers > self["money"] / self.wage:
+            self.ideal_num_workers = self["money"] / self.wage
         return {"name": self.name, "number": self.ideal_num_workers, "wage": self.wage}
 
     def send_prices(self):
@@ -271,7 +267,6 @@ class Firm(abcFinance.Agent):
         """
         """
         self.destroy('workers')
-        self.log('wage_share', self.salary / (self.salary + self.dividends))
         self.log('tot_wage_bill', self.salary)
 
 
@@ -313,7 +308,10 @@ class Firm(abcFinance.Agent):
                 housebank_rate = interest[0][1]
 
         # request loan
+        print("demand:", self.demand, "balance:", balance, "wage:", self.wage)
+        print("housebank_rate", housebank_rate, "price", self.price, "wage", self.wage)
         if self.demand > balance / self.wage and housebank_rate < (self.price / self.wage) - 1:
+            print("WANT LOAN")
             loan = self.demand * self.wage - balance
             if loan > 0:
                 if self.opened_loan_account == False:

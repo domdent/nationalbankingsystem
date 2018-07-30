@@ -83,9 +83,15 @@ class Bank(abcFinance.Agent):
         messages = self.get_messages("close")
         for msg in messages:
             firm_id = msg.content
-            for i in range(len(self.account_list)):
-                if firm_id == self.account_list[i]:
-                    del self.account_list[i]
+            print(firm_id)
+            print(self.account_list)
+            count = 0
+            loop = True
+            while loop == True:
+                if str(firm_id) == str(self.account_list[count]):
+                    del self.account_list[count]
+                    loop = False
+                count += 1
 
     def grant_loans(self):
         """
@@ -107,16 +113,22 @@ class Bank(abcFinance.Agent):
         # actually book loans in
         for msg in messages:
             sender = msg.sender
+            sender_list = msg.sender
             if len(sender) > 1 and type(sender) == tuple:
                 sender = sender[0] + str(sender[1])
             amount = msg.content
-            self.book(debit=[(sender + "_loan", amount * scaling)],
-                      credit=[(sender + "_deposit", amount * scaling)])
-            self.send(sender, "abce_forceexecute", ("_autobook", dict(
-                debit=[(self.firm_id_deposit, amount * scaling)],
+            try:
+                self.book(debit=[(sender + "_loan", amount * scaling)],
+                          credit=[(sender + "_deposit", amount * scaling)])
+            except KeyError:
+                self.accounts.make_stock_accounts([sender + "_loan"])
+                self.book(debit=[(sender + "_loan", amount * scaling)],
+                          credit=[(sender + "_deposit", amount * scaling)])
+            self.send(sender_list, "abce_forceexecute", ("_autobook", dict(
+                debit=[(sender + "_deposit", amount * scaling)],
                 credit=[("loan_liabilities", amount * scaling)])))
             loan = [amount * scaling, self.interest]
-            self.send_envelope(sender, "loan_details", loan)
+            self.send_envelope(sender_list, "loan_details", loan)
 
 
 
