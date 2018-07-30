@@ -59,6 +59,7 @@ class Firm(abcFinance.Agent):
         self.opened_loan_account = False
         self.own_loan = False
         self.create("workers", 0)
+        self.num_loans = 0
 
 
     def open_bank_acc(self):
@@ -317,6 +318,7 @@ class Firm(abcFinance.Agent):
             loan = self.demand * self.wage - balance
             if loan > 0:
                 print("SENDING FOR LOAN")
+                self.num_loans += 1
                 if self.opened_loan_account == False:
                     self.accounts.make_stock_accounts(["loan_liabilities"])
                     self.opened_loan_account = True
@@ -342,6 +344,7 @@ class Firm(abcFinance.Agent):
         """
 
         """
+        self.log("num_loans", self.num_loans)
         if self.own_loan == True:
             messages = self.get_messages("loan_details")
             for msg in messages:

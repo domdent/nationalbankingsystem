@@ -3,11 +3,15 @@ import abce
 from firm import Firm
 from people import People
 from bank import Bank
+import pandas as pd
+import plotly.offline as offline
+import plotly.graph_objs as go
+
 params = dict(
-    population=500,
-    people_money=20000,
-    num_firms=40,
-    num_banks=4,
+    population=5000,
+    people_money=200000,
+    num_firms=50,
+    num_banks=5,
     firm_money=1800,
 
     num_days=1000,
@@ -87,8 +91,73 @@ all_agents.print_balance_statement()
 
 print('done')
 
-simulation.graph()
+#simulation.graph()
+path = simulation.path
 simulation.finalize()
+
+
+def GraphFn(graphing_variable, agent):
+    """
+    function that takes in graphing variable as parameter and the produces a
+    graph using plotly
+    """
+    df = pd.read_csv(path + "/panel_" + agent + ".csv")
+
+    print("start graph fn")
+    x_data = [[] for _ in range(params["num_" + agent + "s"])]
+    y_data = [[] for _ in range(params["num_" + agent + "s"])]
+
+    for i in range(len(df)):
+        name = df["name"][i]
+        number = int(name[4:])
+        x_data[number].append(df["round"][i])
+        y_data[number].append(df[graphing_variable][i])
+
+    data = []
+
+    for i in range(params["num_" + agent + "s"]):
+        data.append(go.Scatter(x=x_data[i],
+                               y=y_data[i],
+                               mode="lines"))
+
+    layout = go.Layout(
+        title="A graph of " + graphing_variable,
+        xaxis=dict(title="round"),
+        yaxis=dict(title=graphing_variable)
+    )
+    fig = go.Figure(data=data, layout=layout)
+    offline.plot(fig, filename=graphing_variable + ".html")
+    print("end graph fn")
+
+
+def GraphFn_People(graphing_variable, agent):
+    """
+    function that takes in graphing variable as parameter and the produces a
+    graph using plotly
+    """
+    df = pd.read_csv(path + "/panel_" + agent + ".csv")
+
+    print("start graph fn")
+    x_data = [[]]
+    y_data = [[]]
+
+    for i in range(len(df)):
+        name = df["name"][i]
+        number = int(name[4:])
+        x_data[number].append(df["round"][i])
+        y_data[number].append(df[graphing_variable][i])
+
+    data = []
+
+    data.append(go.Scatter(x=x_data[0],
+                           y=y_data[0],
+                           mode="lines"))
+
+GraphFn("wage", "firm")
+GraphFn("workers", "firm")
+GraphFn("ideal_num_workers", "firm")
+GraphFn("num_loans", "firm")
+
 
 """
 Currently no where near the lower bound of cash/loan ratio, as we have one day
