@@ -29,23 +29,40 @@ class People(abcFinance.Agent):
         self.wage_acceptance = wage_acceptance
         # accounting
         self.num_banks = num_banks
-        self.accounts.make_stock_accounts(["goods"])
+        self.accounts.make_stock_accounts(["goods", "bank_notes"])
         self.accounts.make_flow_accounts(["consumption_expenses", "salary_income",
-                                          "buying_expenses"])
-        split_amount = float(self["money"]) / num_banks
+                                          "buying_expenses", "bank_profits"])
+        split_amount = people_money / num_banks
         # splits up money between banks equally and sends message to banks for their records
         for i in range(self.num_banks):
-            bank_ID = "bank" + str(i)
-            self.accounts.make_stock_accounts([bank_ID + "_deposit"])
-            self.accounts.book(debit=[(bank_ID + "_deposit", split_amount)],
+            bank_id = "bank" + str(i)
+            self.accounts.make_stock_accounts([bank_id + "_deposit",
+                                               "bank_notes" + str(i)])
+            self.accounts.book(debit=[(bank_id + "_deposit", split_amount)],
                                credit=[("equity", split_amount)])
 
     def open_bank_acc(self):
         # sends message to open bank account
         for i in range(self.num_banks):
-            bank_ID = "bank" + str(i)
-            amount = self.accounts[bank_ID + "_deposit"].get_balance()[1]
-            self.send_envelope(bank_ID, "deposit", amount)
+            bank_id = "bank" + str(i)
+            amount = self.accounts[bank_id + "_deposit"].get_balance()[1]
+            self.send_envelope(bank_id, "deposit", amount)
+
+    def correct_currencies(self):
+        """
+        changes deposits into bank notes start of program
+        """
+        for i in range(self.num_banks):
+            bank_id = "bank" + str(i)
+            note = "bank_notes" + str(i)
+            amount = self.accounts[bank_id + "_deposit"].get_balance()[1]
+            self.accounts.book(debit=[(note, amount)],
+                               credit=[(bank_id + "_deposit", amount)])
+            # bank credits bank notes at beginning of program
+            self.send(bank_id, "abce_forceexecute", ("_autobook", dict(
+                debit=[("people_deposit", amount)],
+                credit=[(note, amount)])))
+
 
 
     def create_labor(self):
@@ -95,19 +112,35 @@ class People(abcFinance.Agent):
         demand_list = []
         l = self.l
 
-        I = self.not_reserved('money')
+        # need to buy from each firm with all notes proportional to balance
+        bank_note_dict = {}
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+        for i in range(self.num_banks):
+            balance = self.accounts["bank_notes" + str(i)].get_balance()[1]
+            bank_note_dict[i] = balance / total_bank_notes
+
+        I = self.not_reserved('money')  # total_bank_notes?
         for firm in range(self.num_firms):  # fix systematic advantage for 0 firm
             firm_price = float(self.price_dict['firm', firm])
             demand = (I / q) * (q / firm_price) ** (1 / (1 - l))
-            self.buy(('firm', firm), good='produce', quantity=demand, price=firm_price)
+
+            # buy with the various bank note currencies proportionally
+            for i in range(self.num_banks):
+                proportion = bank_note_dict[i]
+                self.buy(("firm", firm), good="produce",
+                         quantity=proportion * demand, price=firm_price,
+                         currency="bank_notes" + str(i))
+
             demand_list.append(demand)
         self.log('total_demand', sum(demand_list))
         return demand_list
 
     def send_workers(self, vacancies_list):
         """
-        Calculates the supply of employees for each firm, gives this amount of labour, or as much labour as possible
-        to each firm
+        Calculates the supply of employees for each firm, gives this amount of
+        labour, or as much labour as possible to each firm
 
         Args:   sum_wages = the sum of the wages offered from every firm
                 firm_wage = the wage the firm is offering
@@ -217,3 +250,14 @@ class People(abcFinance.Agent):
         self.send(to_account, "abce_forceexecute", ("_autobook", dict(
             debit=[("cash", amount)],
             credit=[("people_deposit", amount)])))
+
+    def convert_deposits(self):
+        """
+        converts X amount of deposits into bank notes
+        """
+        percent = 0.5
+        for i in range(self.num_banks):
+            bank_id = "bank" + str(i)
+            amount = self.accounts[bank_id + "_deposit"].get_balance()[1]
+            self.send_envelope(bank_id, "bank_notes", percent * amount)
+

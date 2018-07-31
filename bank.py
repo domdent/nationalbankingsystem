@@ -11,15 +11,16 @@ class Bank(abcFinance.Agent):
         """
         self.name = "bank" + str(self.id)
 
-        self.accounts.make_stock_accounts(["cash", "Equity"])
-        self.accounts.make_flow_accounts(["interest_income"])
+        self.accounts.make_stock_accounts(["cash", "bank_notes" + str(self.id)])
+        self.accounts.make_flow_accounts(["interest_income", "profits"])
         self.book(debit=[("cash", cash_reserves)],
-                  credit=[("Equity", cash_reserves)])
+                  credit=[(self.accounts.residual_account_name, cash_reserves)])
         self.create("cash", cash_reserves)
         self.num_firms = num_firms
         self.interest = random.uniform(0.01, 0.05)  # between 1% and 5%
         self.account_list = []
         self.ratio = 0
+        self.cash_reserves = cash_reserves
 
     def credit_depositors(self):
         """
@@ -53,8 +54,9 @@ class Bank(abcFinance.Agent):
         deposits = 0
         for account in self.account_list:
             deposits += self.accounts[account].get_balance()[1]
+        bank_notes = self.accounts["bank_notes" + str(self.id)].get_balance()[1]
 
-        self.ratio = deposits / cash
+        self.ratio = (deposits + 10 * bank_notes) / cash
 
         # ratio between 3-8 is good
         if self.ratio > 8:
@@ -130,7 +132,16 @@ class Bank(abcFinance.Agent):
             loan = [amount * scaling, self.interest]
             self.send_envelope(sender_list, "loan_details", loan)
 
-
+    def give_profits(self):
+        equity = self.accounts[self.accounts.residual_account_name].get_balance()[1]
+        if equity > self.cash_reserves:
+            amount = equity - self.cash_reserves
+            self.give("people", "money", equity)
+            self.book(debit=[(self.accounts.residual_account_name, amount)],
+                      credit=[("people_deposit", amount)])
+            self.send("people", "abce_forceexecute", ("_autobook", dict(
+                debit=[(self.name + "_deposit", amount)],
+                credit=[("bank_profits", amount)])))
 
 
     def print_balance_statement(self):
@@ -138,3 +149,29 @@ class Bank(abcFinance.Agent):
        # self.print_profit_and_loss()
        # self.book_end_of_period()
         self.print_balance_sheet()
+
+    def grant_bank_notes(self):
+        """
+        ratio is determined by the "determine_interest" Fn. so that must be
+        called before this
+        """
+        messages = self.get_messages("bank_notes")
+
+        for msg in messages:
+            sender = msg.sender
+            if len(sender) > 1 and type(sender) == tuple:
+                sender = sender[0] + str(sender[1])
+            sender_list = msg.sender
+            amount = msg.content
+            current_bank_notes = self.accounts["bank_notes" + str(self.id)].get_balance()[1]
+            gov_bonds = self.accounts["cash"].get_balance()[1]
+            if (amount / gov_bonds) + self.ratio <= 10:
+                # if granting the bank notes doesn't go over the ratio of 10
+                # book bank notes
+                self.book(debit=[(sender + "_deposit", amount)],
+                          credit=[("bank_notes" + str(self.id), amount)])
+                self.send(sender_list, "abce_forceexecute", ("_autobook", dict(
+                    debit=[("bank_notes" + str(self.id), amount)],
+                    credit=[(sender + "_deposit", amount)])))
+            else:
+                # have to get bank notes from other banks...

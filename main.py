@@ -38,6 +38,8 @@ people = simulation.build_agents(People, "people", number=1, **params)
 group_of_banks.credit_depositors()
 
 all_agents = group_of_firms + group_of_banks + people
+all_agents.print_balance_statement()
+
 
 for r in range(params["num_days"]):
     simulation.time = r
@@ -61,6 +63,7 @@ for r in range(params["num_days"]):
 
     group_of_firms.production()
     group_of_firms.pay_workers()
+    #group_of_firms.pay_workers_bank_notes()
 
     # LOANS
     group_of_firms.loan_repayment()
@@ -78,6 +81,7 @@ for r in range(params["num_days"]):
     group_of_firms.expand_or_change_price()
     (people + group_of_firms).destroy_unused_labor()
     people.consumption()
+    group_of_banks.give_profits()
     all_agents.check_for_lost_messages()
     people.adjust_accounts()
     group_of_banks.book_end_of_period()
@@ -94,6 +98,7 @@ print('done')
 #simulation.graph()
 path = simulation.path
 simulation.finalize()
+simulation.graph()
 
 
 def GraphFn(graphing_variable, agent):
@@ -160,10 +165,17 @@ GraphFn("num_loans", "firm")
 
 
 """
-Currently no where near the lower bound of cash/loan ratio, as we have one day
+Need to convert everything into their respective correct currencies
+
+
+Currently nowhere near the lower bound of cash/loan ratio, as we have one day
 loans and when we call the "determine_interest" fn. there are no outstanding 
 loans and therefore a 1:1 ratio.
+
 Should we adjust ideal_num_workers, so that the value can be above what can be
 afforded so then we can encourage loans to fulfill that value. Currently we just 
 set the variable to a value that can be afforded.
+
+
+Everything but profits are transferred in bank notes.
 """

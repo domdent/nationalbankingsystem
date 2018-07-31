@@ -60,6 +60,10 @@ class Firm(abcFinance.Agent):
         self.own_loan = False
         self.create("workers", 0)
         self.num_loans = 0
+        for i in range(self.num_banks):
+            self.accounts.make_stock_accounts(["bank_notes" + str(i)])
+        self.waiting_for_bank_notes = False
+        self.outstanding_payment = 0
 
 
     def open_bank_acc(self):
@@ -220,27 +224,70 @@ class Firm(abcFinance.Agent):
         gives out all money and reduces wage by 1 unit
         should edit this and take out loan for payments
         """
-        salary = self.wage * self['workers']
-        salary_payment = self.accounts["wages_owed"].get_balance()[1]
+        salary = self.accounts["wages_owed"].get_balance()[1]
 
         if salary > self["money"]:
             salary = self["money"]
             self.wage -= self.wage_increment
             self.wage = max(0, self.wage)
-        if abs(salary_payment - salary) > 0.1:
-            print("WARNING: salary and accounting statement DO NOT MATCH!")
-            print(salary, ", ", salary_payment)
+            print("WARNING: cannot afford to pay workers with current owned money!")
+
         self.give("people", "money", quantity=salary)
         # accounting
-        self.accounts.book(debit=[("wages_owed", salary)],
-                           credit=[(self.firm_id_deposit, salary)])
-        self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
-            debit=[(self.firm_id_deposit, salary)],
-            credit=[("people_deposit", salary)])))
-        self.send("people", "abce_forceexecute", ("_autobook", dict(
-            debit=[(self.housebank + "_deposit", salary)],
-            credit=[("salary_income", salary)])))
+        # payment is in bank notes
+        paid = 0
+        c = list(range(0, self.num_banks))
+        randomised_order = random.sample(c, self.num_banks)
+        for i in randomised_order:
+            if paid == salary:
+                break
+            note = "bank_notes" + str(i)
+            balance = self.accounts[note].get_balance()[1]
+            if salary - paid - balance < 0:
+                # just send salary worth of i bank notes
+                self.accounts.book(debit=[("wages_owed", salary - paid)],
+                                   credit=[(note, salary - paid)])
+                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                    debit=[(note, salary - paid)],
+                    credit=[("salary_income", salary - paid)])))
+                paid = salary
+            elif salary - paid - balance > 0:
+                # just send balance worth of i bank notes
+                self.accounts.book(debit=[("wages_owed", balance)],
+                                   credit=[(note, balance)])
+                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                    debit=[(note, balance)],
+                    credit=[("salary_income", balance)])))
+                paid += balance
+        if paid != salary:
+            # they haven't been able to pay the workers
+            # need to now either transfer deposits into bank notes
+            # or take out a loan?
+            deposit_balance = self.accounts[self.firm_id_deposit].get_balance()[1]
+            if deposit_balance > salary - paid:
+                # need to transfer deposit into bank notes for payment
+                amount = salary - paid
+                self.send_envelope(self.housebank, "bank_notes", amount)
+                self.waiting_for_bank_notes = True
+                self.outstanding_payment = amount
+            elif salary - paid - deposit_balance > 0:
+                print("outstanding payment")
+
         self.salary = salary
+
+    def pay_workers_bank_notes(self):
+        if self.waiting_for_bank_notes == True:
+            amount = self.outstanding_payment
+            self.outstanding_payment = 0
+            note = "bank_notes" + self.housebank[-1:]
+            self.accounts.book(debit=[("wages_owed", amount)],
+                               credit=[(note, amount)])
+            self.send("people", "abce_forceexecute", ("_autobook", dict(
+                debit=[(note, amount)],
+                credit=[("salary_income", amount)])))
+            self.waiting_for_bank_notes = False
+
+
 
 
     def getvalue_ideal_num_workers(self):
@@ -307,7 +354,6 @@ class Firm(abcFinance.Agent):
             if random.uniform(0, 1) < prob_change:
                 # Fn. that does accounting statements and sends new bank a request
                 self.move_banks(interest[0][0])
-                self.housebank = interest[0][0]
                 housebank_rate = interest[0][1]
 
         # request loan
@@ -331,7 +377,7 @@ class Firm(abcFinance.Agent):
         in personal booking statements and bank's booking statements
         """
         balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
-
+        self.housebank = new_bank
         self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
             debit=[(self.firm_id_deposit, balance)],
             credit=[("cash", balance)])))
