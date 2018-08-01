@@ -122,11 +122,13 @@ class People(abcFinance.Agent):
             total_bank_notes2 += self.accounts["bank_notes" + str(i)].get_balance()[1]
             total_bank_notes += self["bank_notes" + str(i)]
             if abs(total_bank_notes2 - total_bank_notes) > 0.01:
-                print("PHYSICAL BANK NOTES NOT EQUAL TO ACCOUNTING BANK NOTES")
+                #print("PHYSICAL BANK NOTES NOT EQUAL TO ACCOUNTING BANK NOTES")
+                pass
 
         bank_note_dict = {}
         for i in range(self.num_banks):
             balance = self["bank_notes" + str(i)]
+            print("balance="+str(balance)+", total_bank_notes="+str(total_bank_notes))
             bank_note_dict[i] = balance / total_bank_notes
 
         I = total_bank_notes  # total_bank_notes?
@@ -137,6 +139,7 @@ class People(abcFinance.Agent):
             # buy with the various bank note currencies proportionally
             for i in range(self.num_banks):
                 proportion = bank_note_dict[i]
+                print("proportion="+str(proportion)+", demand="+str(demand))
                 self.buy(("firm", firm), good="produce",
                          quantity=proportion * demand, price=firm_price,
                          currency="bank_notes" + str(i))
@@ -234,7 +237,6 @@ class People(abcFinance.Agent):
             account_amount_list.append(multiplier * self.accounts[bank_ID + "_deposit"].get_balance()[1])
         funds_per_acc = total_funds / self.num_banks
         funds_above_ave = [[] for _ in range(self.num_banks)]
-        print(account_amount_list)
 
         for i in range(self.num_banks):
             # calculates the difference from the average amount per bank acc and makes list of lists

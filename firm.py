@@ -98,8 +98,6 @@ class Firm(abcFinance.Agent):
         elif self.ideal_num_workers == self['workers']:
             max_employees = messages[0]
             if max_employees > self.excess * self.ideal_num_workers:
-                print("Decreasing wage")
-                print(max_employees, self.ideal_num_workers)
                 self.wage -= random.uniform(0, self.wage_increment * self.wage)
                 if self.wage < 0:
                     self.wage = 0
@@ -146,7 +144,7 @@ class Firm(abcFinance.Agent):
 
         total_bank_notes = 0
         for i in range(self.num_banks):
-            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+            total_bank_notes += self["bank_notes" + str(i)]
 
         if self['produce'] > self.upper_inv:
             if not profitable or random.random() < 0.1  or self.last_action[1] != '-':
@@ -167,7 +165,7 @@ class Firm(abcFinance.Agent):
                 if self['workers'] >= self.ideal_num_workers:
                     self.ideal_num_workers += random.uniform(0, self.worker_increment * self.ideal_num_workers)
                     if self.ideal_num_workers > total_bank_notes / self.wage:
-                        print("Ideal_num_workers > total_bank_notes / wage")
+                        pass # IS SOMETHING MEANT TO BE HERE???
             elif self.last_action != ('ideal_num_workers', '+'):
                 self.price += random.uniform(0, self.price_increment * self.price)
             else:
@@ -191,6 +189,9 @@ class Firm(abcFinance.Agent):
                 goods_value = self.accounts["goods"].get_balance()[1]
                 ave_unit_cost = goods_value / self["produce"]
                 cost = ave_unit_cost * offer.quantity
+                print("ave_unit_cost: " + str(ave_unit_cost))
+                print("offer.quant: " + str(offer.quantity))
+                print("cost: " + str(cost))
                 self.accounts.book(debit=[(self.firm_id_deposit, sale_value),
                                           ("cost_of_goods_sold", cost)],
                                    credit=[("sales_revenue", sale_value),
@@ -292,7 +293,6 @@ class Firm(abcFinance.Agent):
                 self.outstanding_payment = amount
             elif salary - paid - deposit_balance > 0:
                 print("outstanding payment")
-
         self.salary = salary
 
     def pay_workers_bank_notes(self):
@@ -319,7 +319,7 @@ class Firm(abcFinance.Agent):
 
         total_bank_notes = 0
         for i in range(self.num_banks):
-            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+            total_bank_notes += self["bank_notes" + str(i)]
 
         if self.ideal_num_workers > total_bank_notes / self.wage:
             self.ideal_num_workers = total_bank_notes / self.wage
@@ -335,7 +335,7 @@ class Firm(abcFinance.Agent):
         """
         total_bank_notes = 0
         for i in range(self.num_banks):
-            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+            total_bank_notes += self["bank_notes" + str(i)]
         self.log("total_bank_notes", total_bank_notes)
         self.log("produce", self["produce"])
         self.log("workers", self["workers"])
@@ -374,7 +374,6 @@ class Firm(abcFinance.Agent):
 
         interest.sort(key=lambda x: float(x[1]))
 
-        print(interest)
         # chance of changing bank for better interest rate on loan if demand condition satisfied:
         if interest[0][0] != self.housebank and self.demand > balance / self.wage:
             prob_change = (housebank_rate - interest[0][1]) / housebank_rate
@@ -384,13 +383,9 @@ class Firm(abcFinance.Agent):
                 housebank_rate = interest[0][1]
 
         # request loan
-        print("demand:", self.demand, "balance:", balance, "wage:", self.wage)
-        print("housebank_rate", housebank_rate, "price", self.price, "wage", self.wage)
         if self.demand > balance / self.wage and housebank_rate < (self.price / self.wage) - 1:
-            print("WANT LOAN")
             loan = self.demand * self.wage - balance
             if loan > 0:
-                print("SENDING FOR LOAN")
                 self.num_loans += 1
                 if self.opened_loan_account == False:
                     self.accounts.make_stock_accounts(["loan_liabilities"])
@@ -418,7 +413,6 @@ class Firm(abcFinance.Agent):
         if self.own_loan == True:
             messages = self.get_messages("loan_details")
             for msg in messages:
-                print("paying loan")
                 # loan is list with given loan amount [0] and interest [1]
                 loan = msg.content
                 amount = loan[0]

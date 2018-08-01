@@ -166,6 +166,11 @@ GraphFn("num_loans", "firm")
 
 
 """
+Currently getting a negative value for self["bank note X...
+check console when program runs,
+Need to also look into why those values are being driven down
+
+
 Need to convert everything into their respective correct currencies
 
 

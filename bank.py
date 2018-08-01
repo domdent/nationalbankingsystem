@@ -194,9 +194,11 @@ class Bank(abcFinance.Agent):
                 # book bank notes
                 self.book(debit=[(sender + "_deposit", amount)],
                           credit=[("bank_notes" + str(self.id), amount)])
+                self.create("bank_notes" + str(self.id), amount)
                 self.send(sender_list, "abce_forceexecute", ("_autobook", dict(
                     debit=[("bank_notes" + str(self.id), amount)],
                     credit=[(sender + "_deposit", amount)])))
+                self.give(sender_list, "bank_notes" + str(self.id), amount)
             else:
                 print("NEED TO GET BANK NOTES FROM OTHER BANKS!!")
                 pass
