@@ -9,7 +9,7 @@ import plotly.graph_objs as go
 
 params = dict(
     population=5000,
-    people_money=200000,
+    people_money=5000,
     num_firms=50,
     num_banks=5,
     firm_money=1800,
@@ -26,7 +26,7 @@ params = dict(
     worker_increment=0.1,
     productivity=1,
     wage_acceptance=1,
-    cash_reserves=500)
+    cash_reserves=2000)
 
 simulation = abce.Simulation(name='economy', processes=1)
 # initiate banks first

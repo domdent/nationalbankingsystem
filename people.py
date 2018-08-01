@@ -21,7 +21,6 @@ class People(abcFinance.Agent):
     def init(self, people_money, population, l, num_firms, wage_acceptance, num_banks, **_):
         self.name = "people"
         self.population = population
-        self.create('money', people_money)
         self.produce = 0
         self.num_firms = num_firms
         self.price_dict = {}
@@ -49,6 +48,8 @@ class People(abcFinance.Agent):
             bank_id = "bank" + str(i)
             amount = self.accounts[bank_id + "_deposit"].get_balance()[1]
             self.send_envelope(bank_id, "deposit", amount)
+
+
 
     def correct_currencies(self):
         """
@@ -119,11 +120,12 @@ class People(abcFinance.Agent):
         total_bank_notes = 0
         for i in range(self.num_banks):
             total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+
         for i in range(self.num_banks):
             balance = self.accounts["bank_notes" + str(i)].get_balance()[1]
             bank_note_dict[i] = balance / total_bank_notes
 
-        I = self.not_reserved('money')  # total_bank_notes?
+        I = total_bank_notes  # total_bank_notes?
         for firm in range(self.num_firms):  # fix systematic advantage for 0 firm
             firm_price = float(self.price_dict['firm', firm])
             demand = (I / q) * (q / firm_price) ** (1 / (1 - l))
@@ -248,9 +250,9 @@ class People(abcFinance.Agent):
                            credit=[(from_account + "_deposit", amount)])
         self.send(from_account, "abce_forceexecute", ("_autobook", dict(
             debit=[("people_deposit", amount)],
-            credit=[("cash", amount)])))
+            credit=[("gov_bonds", amount)])))
         self.send(to_account, "abce_forceexecute", ("_autobook", dict(
-            debit=[("cash", amount)],
+            debit=[("gov_bonds", amount)],
             credit=[("people_deposit", amount)])))
 
     def convert_deposits(self):

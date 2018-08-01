@@ -34,8 +34,18 @@ class Bank(abcFinance.Agent):
                 sender = sender[0] + str(sender[1])
             self.account_list.append(sender + "_deposit")
             self.accounts.make_stock_accounts([(sender + "_deposit")])
-            self.book(debit=[("bank_notes" + str(self.id), amount)],
+            self.book(debit=[("equity", amount)],
                       credit=[(sender + "_deposit", amount)])
+            self.book(debit=[(sender + "_deposit", amount)],
+                      credit=[("bank_notes" + str(self.id), amount)])
+            if msg.sender != "people":
+                self.send(msg.sender, "abce_forceexecute", ("_autobook", dict(
+                    debit=[("bank_notes" + str(self.id), amount)],
+                    credit=[(sender + "_deposit", amount)])))
+            else:
+                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                    debit=[("bank_notes" + str(self.id), amount)],
+                    credit=[(self.name + "_deposit", amount)])))
 
     def send_interest_rates(self):
         """
@@ -50,7 +60,7 @@ class Bank(abcFinance.Agent):
         """
         See how much of cash/deposit limit (1:10) is full
         """
-        cash = self.accounts["cash"].get_balance()[1]
+        cash = self.accounts["gov_bonds"].get_balance()[1]
         deposits = 0
         for account in self.account_list:
             deposits += self.accounts[account].get_balance()[1]
@@ -73,34 +83,49 @@ class Bank(abcFinance.Agent):
         messages = self.get_messages("account")
         for msg in messages:
             sender = msg.sender
-            amount = msg.content
+            oldbank, amount = msg.content
             if len(sender) > 1 and type(sender) == tuple:
                 sender = sender[0] + str(sender[1])
-            self.accounts.make_stock_accounts([(sender + "_deposit")])
-            self.book(debit=[("cash", amount)],
+            print(oldbank)
+
+            try:
+                self.accounts.make_stock_accounts([sender + "_deposit"])
+            except AssertionError:
+                pass
+
+            try:
+                self.accounts.make_stock_accounts([oldbank + "_deposit"])
+            except AssertionError:
+                pass
+            self.book(debit=[(oldbank + "_deposit", amount)],
                       credit=[(sender + "_deposit", amount)])
             self.account_list.append(sender + "_deposit")
 
     def close_accounts(self):
         messages = self.get_messages("close")
         for msg in messages:
-            firm_id = msg.content
-            print(firm_id)
-            print(self.account_list)
+            new_bank, balance = msg.content
+            firm_id = msg.sender[0] + str(msg.sender[1])
             count = 0
             loop = True
             while loop == True:
-                if str(firm_id) == str(self.account_list[count]):
+                if str(firm_id + "_deposit") == str(self.account_list[count]):
                     del self.account_list[count]
                     loop = False
                 count += 1
+            try:
+                self.accounts.make_stock_accounts([new_bank + "_deposit"])
+            except AssertionError:
+                pass
+            self.accounts.book(debit=[(firm_id + "_deposit", balance)],
+                               credit=[(new_bank + "_deposit", balance)])
 
     def grant_loans(self):
         """
         look at loan and grant
         """
         loan_limit = 10 - self.ratio
-        cash = self.accounts["cash"].get_balance()[1]
+        cash = self.accounts["gov_bonds"].get_balance()[1]
         loan_limit *= cash
         scaling = 1
 
@@ -109,7 +134,7 @@ class Bank(abcFinance.Agent):
         total_loans_requested = 0
         for msg in messages:
             total_loans_requested += msg.content
-        if total_loans_requested > loan_limit:
+        if total_loans_requested > loan_limit and total_loans_requested != 0:
             scaling = loan_limit / total_loans_requested
 
         # actually book loans in
@@ -164,7 +189,7 @@ class Bank(abcFinance.Agent):
             sender_list = msg.sender
             amount = msg.content
             current_bank_notes = self.accounts["bank_notes" + str(self.id)].get_balance()[1]
-            gov_bonds = self.accounts["cash"].get_balance()[1]
+            gov_bonds = self.accounts["gov_bonds"].get_balance()[1]
             if (amount / gov_bonds) + self.ratio <= 10:
                 # if granting the bank notes doesn't go over the ratio of 10
                 # book bank notes
@@ -174,4 +199,6 @@ class Bank(abcFinance.Agent):
                     debit=[("bank_notes" + str(self.id), amount)],
                     credit=[(sender + "_deposit", amount)])))
             else:
+                print("NEED TO GET BANK NOTES FROM OTHER BANKS!!")
+                pass
                 # have to get bank notes from other banks...

@@ -26,7 +26,6 @@ class Firm(abcFinance.Agent):
         """
         initializes starting characteristics
         """
-        self.create("money", firm_money)
         self.last_round_money = firm_money
         self.wage_increment = wage_increment
         self.price_increment = price_increment
@@ -47,6 +46,11 @@ class Firm(abcFinance.Agent):
         self.last_action = (None, None)
         # accounting
         self.num_banks = num_banks
+        amount = firm_money / num_banks
+        for i in range(self.num_banks):
+            self.accounts.make_stock_accounts(["bank_notes" + str(i)])
+        self.housebank = "bank" + str(random.randint(0, num_banks - 1))
+        self.create("bank_notes" + str(self.housebank[-1:]), firm_money)
         self.firm_id_deposit = ("firm" + str(self.id) + "_deposit")
         self.accounts.make_stock_accounts([self.firm_id_deposit, "goods", "wages_owed"])
         self.accounts.make_flow_accounts(["capitalized_production", "wage_expenses",
@@ -54,17 +58,11 @@ class Firm(abcFinance.Agent):
                                           "dividend_expenses", "interest_expenses"])
         self.accounts.book(debit=[(self.firm_id_deposit, self["money"])],
                            credit=[("equity", self["money"])])
-        self.housebank = "bank" + str(random.randint(0, num_banks - 1))
         self.demand = 0
         self.opened_loan_account = False
         self.own_loan = False
         self.create("workers", 0)
         self.num_loans = 0
-        balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
-        amount = balance / self.num_banks
-        for i in range(self.num_banks):
-            self.accounts.make_stock_accounts(["bank_notes" + str(i)])
-            self.create("bank_notes" + str(i), amount)
         self.waiting_for_bank_notes = False
         self.outstanding_payment = 0
 
@@ -125,7 +123,7 @@ class Firm(abcFinance.Agent):
         self.profit_1 = self.profit
         self.profits = dividends = self['money'] - self.last_round_money
         if dividends > 0:
-            self.give("people", "money", quantity=dividends)
+            # give deposits
             # accounting
             self.accounts.book(debit=[("dividend_expenses", dividends)],
                                credit=[(self.firm_id_deposit, dividends)])
@@ -235,7 +233,7 @@ class Firm(abcFinance.Agent):
             self.wage = max(0, self.wage)
             print("WARNING: cannot afford to pay workers with current owned money!")
 
-        self.give("people", "money", quantity=salary)
+        # give bank notes
         # accounting
         # payment is in bank notes
         paid = 0
@@ -246,6 +244,7 @@ class Firm(abcFinance.Agent):
                 break
             note = "bank_notes" + str(i)
             balance = self.accounts[note].get_balance()[1]
+
             if salary - paid - balance < 0:
                 # just send salary worth of i bank notes
                 self.accounts.book(debit=[("wages_owed", salary - paid)],
@@ -253,7 +252,9 @@ class Firm(abcFinance.Agent):
                 self.send("people", "abce_forceexecute", ("_autobook", dict(
                     debit=[(note, salary - paid)],
                     credit=[("salary_income", salary - paid)])))
+                self.give("people", note, quantity=salary - paid)
                 paid = salary
+
             elif salary - paid - balance > 0:
                 # just send balance worth of i bank notes
                 self.accounts.book(debit=[("wages_owed", balance)],
@@ -261,7 +262,9 @@ class Firm(abcFinance.Agent):
                 self.send("people", "abce_forceexecute", ("_autobook", dict(
                     debit=[(note, balance)],
                     credit=[("salary_income", balance)])))
+                self.give("people", note, quantity=balance)
                 paid += balance
+
         if paid != salary:
             # they haven't been able to pay the workers
             # need to now either transfer deposits into bank notes
@@ -288,6 +291,7 @@ class Firm(abcFinance.Agent):
             self.send("people", "abce_forceexecute", ("_autobook", dict(
                 debit=[(note, amount)],
                 credit=[("salary_income", amount)])))
+            self.give("people", note, quantity=amount)
             self.waiting_for_bank_notes = False
 
 
@@ -380,13 +384,10 @@ class Firm(abcFinance.Agent):
         in personal booking statements and bank's booking statements
         """
         balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
-        self.housebank = new_bank
-        self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
-            debit=[(self.firm_id_deposit, balance)],
-            credit=[("cash", balance)])))
-        self.send_envelope(self.housebank, "close", self.firm_id_deposit)
+        self.send_envelope(self.housebank, "close", (new_bank, balance))
         # open account at new bank
-        self.send_envelope(new_bank, "account", balance)
+        self.send_envelope(new_bank, "account", (self.housebank, balance))
+        self.housebank = new_bank
         # needs to be recieved at bank's end and accounted for
 
     def loan_repayment(self):
