@@ -116,13 +116,17 @@ class People(abcFinance.Agent):
         l = self.l
 
         # need to buy from each firm with all notes proportional to balance
-        bank_note_dict = {}
         total_bank_notes = 0
+        total_bank_notes2 = 0
         for i in range(self.num_banks):
-            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+            total_bank_notes2 += self.accounts["bank_notes" + str(i)].get_balance()[1]
+            total_bank_notes += self["bank_notes" + str(i)]
+            if abs(total_bank_notes2 - total_bank_notes) > 0.01:
+                print("PHYSICAL BANK NOTES NOT EQUAL TO ACCOUNTING BANK NOTES")
 
+        bank_note_dict = {}
         for i in range(self.num_banks):
-            balance = self.accounts["bank_notes" + str(i)].get_balance()[1]
+            balance = self["bank_notes" + str(i)]
             bank_note_dict[i] = balance / total_bank_notes
 
         I = total_bank_notes  # total_bank_notes?
@@ -171,15 +175,23 @@ class People(abcFinance.Agent):
         """
         prints possessions and logs money of a person agent
         """
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+
         print('    ' + self.group + str(dict(self.possessions())))
-        self.log("money", self["money"])
+        self.log("money", total_bank_notes)
         self.log("workers", self["workers"])
 
     def getvalue(self):
         """
         returns the value of money owned by a person agent
         """
-        return self["money"]
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+
+        return total_bank_notes
 
     def getvaluegoods(self):
         """

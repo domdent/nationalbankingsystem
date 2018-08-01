@@ -161,7 +161,6 @@ class Bank(abcFinance.Agent):
         equity = self.accounts[self.accounts.residual_account_name].get_balance()[1]
         if equity > self.cash_reserves:
             amount = equity - self.cash_reserves
-            self.give("people", "money", equity)
             self.book(debit=[(self.accounts.residual_account_name, amount)],
                       credit=[("people_deposit", amount)])
             self.send("people", "abce_forceexecute", ("_autobook", dict(

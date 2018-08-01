@@ -8,13 +8,13 @@ import plotly.offline as offline
 import plotly.graph_objs as go
 
 params = dict(
-    population=5000,
-    people_money=5000,
-    num_firms=50,
-    num_banks=5,
-    firm_money=1800,
+    population=500,
+    people_money=100,
+    num_firms=20,
+    num_banks=4,
+    firm_money=200,
 
-    num_days=1000,
+    num_days=501,
 
     l=0.5,  # constant from CS equation
     num_days_buffer=10,  # number of days worth of wages a firm will keep after giving profits
@@ -63,7 +63,8 @@ for r in range(params["num_days"]):
 
     group_of_firms.production()
     group_of_firms.pay_workers()
-    #group_of_firms.pay_workers_bank_notes()
+    group_of_banks.grant_bank_notes()
+    group_of_firms.pay_workers_bank_notes()
 
     # LOANS
     group_of_firms.loan_repayment()

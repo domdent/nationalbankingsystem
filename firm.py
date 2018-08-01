@@ -56,8 +56,8 @@ class Firm(abcFinance.Agent):
         self.accounts.make_flow_accounts(["capitalized_production", "wage_expenses",
                                           "sales_revenue", "cost_of_goods_sold",
                                           "dividend_expenses", "interest_expenses"])
-        self.accounts.book(debit=[(self.firm_id_deposit, self["money"])],
-                           credit=[("equity", self["money"])])
+        self.accounts.book(debit=[(self.firm_id_deposit, firm_money)],
+                           credit=[("equity", firm_money)])
         self.demand = 0
         self.opened_loan_account = False
         self.own_loan = False
@@ -121,7 +121,12 @@ class Firm(abcFinance.Agent):
 
     def pay_dividends(self):
         self.profit_1 = self.profit
-        self.profits = dividends = self['money'] - self.last_round_money
+
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+
+        self.profits = dividends = total_bank_notes - self.last_round_money
         if dividends > 0:
             # give deposits
             # accounting
@@ -134,10 +139,14 @@ class Firm(abcFinance.Agent):
                 debit=[(self.housebank + "_deposit", dividends)],
                 credit=[("salary_income", dividends)])))
 
-        self.last_round_money = self["money"]
+        self.last_round_money = total_bank_notes
 
     def expand_or_change_price(self):
         profitable = self.profit >= self.profit_1
+
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
 
         if self['produce'] > self.upper_inv:
             if not profitable or random.random() < 0.1  or self.last_action[1] != '-':
@@ -157,8 +166,8 @@ class Firm(abcFinance.Agent):
             if self.last_action != ('price', '+'):
                 if self['workers'] >= self.ideal_num_workers:
                     self.ideal_num_workers += random.uniform(0, self.worker_increment * self.ideal_num_workers)
-                    if self.ideal_num_workers > self["money"] / self.wage:
-                        print("Ideal_num_workers > money / wage")
+                    if self.ideal_num_workers > total_bank_notes / self.wage:
+                        print("Ideal_num_workers > total_bank_notes / wage")
             elif self.last_action != ('ideal_num_workers', '+'):
                 self.price += random.uniform(0, self.price_increment * self.price)
             else:
@@ -227,11 +236,16 @@ class Firm(abcFinance.Agent):
         """
         salary = self.accounts["wages_owed"].get_balance()[1]
 
-        if salary > self["money"]:
-            salary = self["money"]
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self["bank_notes" + str(i)]
+
+        if salary > total_bank_notes:
+            salary = total_bank_notes
             self.wage -= self.wage_increment
             self.wage = max(0, self.wage)
-            print("WARNING: cannot afford to pay workers with current owned money!")
+            # TAKE OUT LOAN???
+            print("WARNING: cannot afford to pay workers with current owned bank notes!")
 
         # give bank notes
         # accounting
@@ -243,7 +257,7 @@ class Firm(abcFinance.Agent):
             if paid == salary:
                 break
             note = "bank_notes" + str(i)
-            balance = self.accounts[note].get_balance()[1]
+            balance = self[note]
 
             if salary - paid - balance < 0:
                 # just send salary worth of i bank notes
@@ -295,8 +309,6 @@ class Firm(abcFinance.Agent):
             self.waiting_for_bank_notes = False
 
 
-
-
     def getvalue_ideal_num_workers(self):
         return (self.name, self.ideal_num_workers)
 
@@ -304,8 +316,13 @@ class Firm(abcFinance.Agent):
         return self.wage
 
     def publish_vacencies(self):
-        if self.ideal_num_workers > self["money"] / self.wage:
-            self.ideal_num_workers = self["money"] / self.wage
+
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+
+        if self.ideal_num_workers > total_bank_notes / self.wage:
+            self.ideal_num_workers = total_bank_notes / self.wage
         return {"name": self.name, "number": self.ideal_num_workers, "wage": self.wage}
 
     def send_prices(self):
@@ -316,7 +333,10 @@ class Firm(abcFinance.Agent):
         """
         prints possessions and logs money of a person agent
         """
-        self.log("money", self["money"])
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+        self.log("total_bank_notes", total_bank_notes)
         self.log("produce", self["produce"])
         self.log("workers", self["workers"])
 
