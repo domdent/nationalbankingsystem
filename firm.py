@@ -60,8 +60,11 @@ class Firm(abcFinance.Agent):
         self.own_loan = False
         self.create("workers", 0)
         self.num_loans = 0
+        balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
+        amount = balance / self.num_banks
         for i in range(self.num_banks):
             self.accounts.make_stock_accounts(["bank_notes" + str(i)])
+            self.create("bank_notes" + str(i), amount)
         self.waiting_for_bank_notes = False
         self.outstanding_payment = 0
 
@@ -409,3 +412,4 @@ class Firm(abcFinance.Agent):
                 self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
                               debit=[(self.firm_id_deposit, amount)],
                               credit=[("firm" + str(self.id) + "_loan", amount)])))
+                self.own_loan = False

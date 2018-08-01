@@ -11,11 +11,11 @@ class Bank(abcFinance.Agent):
         """
         self.name = "bank" + str(self.id)
 
-        self.accounts.make_stock_accounts(["cash", "bank_notes" + str(self.id)])
+        self.accounts.make_stock_accounts(["gov_bonds", "bank_notes" + str(self.id)])
         self.accounts.make_flow_accounts(["interest_income", "profits"])
-        self.book(debit=[("cash", cash_reserves)],
+        self.book(debit=[("gov_bonds", cash_reserves)],
                   credit=[(self.accounts.residual_account_name, cash_reserves)])
-        self.create("cash", cash_reserves)
+        self.create("gov_bonds", cash_reserves)
         self.num_firms = num_firms
         self.interest = random.uniform(0.01, 0.05)  # between 1% and 5%
         self.account_list = []
@@ -34,7 +34,7 @@ class Bank(abcFinance.Agent):
                 sender = sender[0] + str(sender[1])
             self.account_list.append(sender + "_deposit")
             self.accounts.make_stock_accounts([(sender + "_deposit")])
-            self.book(debit=[("cash", amount)],
+            self.book(debit=[("bank_notes" + str(self.id), amount)],
                       credit=[(sender + "_deposit", amount)])
 
     def send_interest_rates(self):

@@ -40,6 +40,8 @@ class People(abcFinance.Agent):
                                                "bank_notes" + str(i)])
             self.accounts.book(debit=[(bank_id + "_deposit", split_amount)],
                                credit=[("equity", split_amount)])
+            self.create("bank_notes" + str(i), split_amount)
+
 
     def open_bank_acc(self):
         # sends message to open bank account
@@ -254,6 +256,7 @@ class People(abcFinance.Agent):
     def convert_deposits(self):
         """
         converts X amount of deposits into bank notes
+        sends a request which then bank will have to run a Fn. to apply
         """
         percent = 0.5
         for i in range(self.num_banks):
