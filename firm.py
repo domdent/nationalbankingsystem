@@ -51,7 +51,7 @@ class Firm(abcFinance.Agent):
             self.accounts.make_asset_accounts(["bank_notes" + str(i)])
         bank_id = str(random.randint(0, num_banks - 1))
         self.housebank = "bank" + str(bank_id)
-        self.create("bank_notes" + str(self.housebank[-1:]), firm_money)
+        self.create("bank_notes" + str(self.housebank[4:]), firm_money)
         self.firm_id_deposit = ("firm" + str(self.id) + "_deposit")
         self.accounts.make_stock_accounts(["wages_owed"])
         self.accounts.make_asset_accounts([self.firm_id_deposit, "goods"])
@@ -68,6 +68,7 @@ class Firm(abcFinance.Agent):
         self.num_loans = 0
         self.waiting_for_bank_notes = False
         self.outstanding_payment = 0
+        self.outstanding_dividends = False
 
 
     def open_bank_acc(self):
@@ -130,7 +131,7 @@ class Firm(abcFinance.Agent):
 
         self.profits = dividends = total_bank_notes + deposits - self.last_round_money
         self.last_round_money = total_bank_notes
-        if dividends > 0:
+        if dividends - deposits < 0:
             # give deposits
             # accounting
             self.accounts.book(debit=[("dividend_expenses", dividends)],
@@ -141,6 +142,57 @@ class Firm(abcFinance.Agent):
             self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                 debit=[(self.housebank + "_deposit", dividends)],
                 credit=[("salary_income", dividends)])))
+
+        elif dividends - deposits - total_bank_notes < 0:
+            # give deposits
+            self.outstanding_dividends = True
+            self.accounts.book(debit=[("dividend_expenses", deposits)],
+                               credit=[(self.firm_id_deposit, deposits)])
+            self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
+                debit=[(self.firm_id_deposit, deposits)],
+                credit=[("people_deposit", deposits)])))
+            self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
+                debit=[(self.housebank + "_deposit", deposits)],
+                credit=[("salary_income", deposits)])))
+            # need to give in bank notes for deposits
+            amount = dividends - deposits
+            housebank_notes = self["bank_notes" + str(self.housebank[4:])]
+            if amount < housebank_notes:
+                self.send_envelope(self.housebank, "deposit", (amount, str(self.housebank[4:])))
+            else:
+                self.send_envelope(self.housebank, "deposit", (housebank_notes, str(self.housebank[4:])))
+                # sends off for all housebank notes that agent can
+                # now needs to proportionally send off for the required amount from other banks
+                amount -= housebank_notes
+                total_bank_notes -= housebank_notes
+                # make proportionality dictionary:
+                bank_note_dict = {}
+                for i in range(self.num_banks):
+                    balance = self["bank_notes" + str(i)]
+                    bank_note_dict[i] = balance / total_bank_notes
+
+                for i in range(self.num_banks):
+                    self.send_envelope(self.housebank, "deposit", (amount * bank_note_dict[i], str(i)))
+                    # needs to be processed in bank agent
+                    # then call up second dividend function for payment
+        else:
+            print("ERROR: dividends - deposits - total_bank_notes is greater than 0!")
+
+
+    def pay_remaining_dividends(self):
+        # all deposits need to be sent
+        if self.outstanding_dividends == True:
+            deposits = self.accounts[self.firm_id_deposit].get_balance()[1]
+            self.accounts.book(debit=[("dividend_expenses", deposits)],
+                               credit=[(self.firm_id_deposit, deposits)])
+            self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
+                debit=[(self.firm_id_deposit, deposits)],
+                credit=[("people_deposit", deposits)])))
+            self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
+                debit=[(self.housebank + "_deposit", deposits)],
+                credit=[("salary_income", deposits)])))
+            self.outstanding_dividends = False
+
 
 
     def expand_or_change_price(self):
@@ -254,22 +306,22 @@ class Firm(abcFinance.Agent):
 
             if salary - paid - balance < 0:
                 # just send salary - paid worth of i bank notes
+                self.give("people", note, quantity=salary - paid)
                 self.accounts.book(debit=[("wages_owed", salary - paid)],
                                    credit=[(note, salary - paid)])
                 self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[(note, salary - paid)],
                     credit=[("salary_income", salary - paid)])))
-                self.give("people", note, quantity=salary - paid)
                 paid = salary
 
             elif salary - paid - balance > 0:
                 # just send balance worth of i bank notes
+                self.give("people", note, quantity=balance)
                 self.accounts.book(debit=[("wages_owed", balance)],
                                    credit=[(note, balance)])
                 self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[(note, balance)],
                     credit=[("salary_income", balance)])))
-                self.give("people", note, quantity=balance)
                 paid += balance
 
         if paid != salary:
@@ -291,7 +343,7 @@ class Firm(abcFinance.Agent):
         if self.waiting_for_bank_notes == True:
             amount = self.outstanding_payment
             self.outstanding_payment = 0
-            note = "bank_notes" + self.housebank[-1:]
+            note = "bank_notes" + self.housebank[4:]
             self.accounts.book(debit=[("wages_owed", amount)],
                                credit=[(note, amount)])
             self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(

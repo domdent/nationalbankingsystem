@@ -128,10 +128,7 @@ class People(abcFinance.Agent):
         bank_note_dict = {}
         for i in range(self.num_banks):
             balance = self["bank_notes" + str(i)]
-            print("balance="+str(balance)+", total_bank_notes="+str(total_bank_notes))
             bank_note_dict[i] = balance / total_bank_notes
-        print("Price Dictionary: ")
-        print(self.price_dict)
 
         I = total_bank_notes  # total_bank_notes?
         for firm in range(self.num_firms):  # fix systematic advantage for 0 firm
@@ -141,7 +138,6 @@ class People(abcFinance.Agent):
             # buy with the various bank note currencies proportionally
             for i in range(self.num_banks):
                 proportion = bank_note_dict[i]
-                print("proportion="+str(proportion)+", demand="+str(demand))
                 self.buy(("firm", firm), good="produce",
                          quantity=proportion * demand, price=firm_price,
                          currency="bank_notes" + str(i))

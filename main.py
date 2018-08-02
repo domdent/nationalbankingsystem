@@ -74,7 +74,10 @@ for r in range(params["num_days"]):
     demand = people.buy_goods()
 
     group_of_firms.sell_goods()
+
     group_of_firms.pay_dividends()
+    group_of_banks.credit_bank_notes()
+    group_of_firms.pay_remaining_dividends()
 
     group_of_firms.determine_bounds(demand=list(demand)[0])
     (group_of_firms + people).print_possessions()

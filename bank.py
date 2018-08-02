@@ -47,6 +47,27 @@ class Bank(abcFinance.Agent):
                     debit=[("bank_notes" + str(self.id), amount)],
                     credit=[(self.name + "_deposit", amount)])))
 
+    def credit_bank_notes(self):
+        """
+
+        """
+        messages = self.get_messages("deposit")
+        for msg in messages:
+            sender = msg.sender
+            amount, note_id = msg.content
+            if len(sender) > 1 and type(sender) == tuple:
+                sender = sender[0] + str(sender[1])
+            self.book(debit=[("bank_notes" + str(note_id), amount)],
+                      credit=[(sender + "_deposit", amount)])
+            if msg.sender != "people":
+                self.send(msg.sender, "abcEconomics_forceexecute", ("_autobook", dict(
+                    debit=[(sender + "_deposit", amount)],
+                    credit=[("bank_notes" + str(note_id), amount)])))
+            else:
+                self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
+                    debit=[(self.name + "_deposit", amount)],
+                    credit=[("bank_notes" + str(note_id), amount)])))
+
     def send_interest_rates(self):
         """
 
