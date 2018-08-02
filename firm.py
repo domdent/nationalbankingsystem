@@ -53,7 +53,9 @@ class Firm(abcFinance.Agent):
         self.housebank = "bank" + str(bank_id)
         self.create("bank_notes" + str(self.housebank[-1:]), firm_money)
         self.firm_id_deposit = ("firm" + str(self.id) + "_deposit")
-        self.accounts.make_stock_accounts([self.firm_id_deposit, "goods", "wages_owed"])
+        self.accounts.make_stock_accounts(["wages_owed"])
+        self.accounts.make_asset_accounts([self.firm_id_deposit, "goods"])
+
         self.accounts.make_flow_accounts(["capitalized_production", "wage_expenses",
                                           "sales_revenue", "cost_of_goods_sold",
                                           "dividend_expenses", "interest_expenses"])
@@ -185,25 +187,20 @@ class Firm(abcFinance.Agent):
         """
         for offer in self.get_offers("produce"):
             self.demand = offer.quantity
+            bank_notes = offer.currency
             if offer.price >= self.price and self["produce"] >= offer.quantity:
                 # accounting
                 sale_value = offer.price * offer.quantity
                 goods_value = self.accounts["goods"].get_balance()[1]
                 ave_unit_cost = goods_value / self["produce"]
                 cost = ave_unit_cost * offer.quantity
-                print("ave_unit_cost: " + str(ave_unit_cost))
-                print("offer.quant: " + str(offer.quantity))
-                print("cost: " + str(cost))
-                self.accounts.book(debit=[(self.firm_id_deposit, sale_value),
+                self.accounts.book(debit=[(bank_notes, sale_value),
                                           ("cost_of_goods_sold", cost)],
                                    credit=[("sales_revenue", sale_value),
                                            ("goods", cost)])
-                self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
-                    debit=[("people_deposit", sale_value)],
-                    credit=[(self.firm_id_deposit, sale_value)])))
                 self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("goods", sale_value)],
-                    credit=[(self.housebank + "_deposit", sale_value)])))
+                    credit=[(bank_notes, sale_value)])))
                 self.accept(offer)
                 self.log('sales', offer.quantity)
 
@@ -212,16 +209,13 @@ class Firm(abcFinance.Agent):
                 sale_value = offer.price * self["produce"]
                 goods_value = self.accounts["goods"].get_balance()[1]
                 cost = goods_value
-                self.accounts.book(debit=[(self.firm_id_deposit, sale_value),
+                self.accounts.book(debit=[(bank_notes, sale_value),
                                           ("cost_of_goods_sold", cost)],
                                    credit=[("sales_revenue", sale_value),
                                            ("goods", cost)])
-                self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
-                    debit=[("people_deposit", sale_value)],
-                    credit=[(self.firm_id_deposit, sale_value)])))
                 self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("goods", sale_value)],
-                    credit=[(self.housebank + "_deposit", sale_value)])))
+                    credit=[(bank_notes, sale_value)])))
 
                 self.accept(offer, quantity=self["produce"])
                 self.log('sales', self["produce"])
