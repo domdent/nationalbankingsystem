@@ -95,6 +95,11 @@ class Firm(abcFinance.Agent):
         if the ideal number of workers wasn't satisfied then raises the wage
         if the number of workers offered exceeded 110% of the ideal number then lower the wage
         """
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self["bank_notes" + str(i)]
+        self.log("notes", total_bank_notes)
+
         messages = self.get_messages("max_employees")
         if self.ideal_num_workers > self['workers']:
             self.wage += random.uniform(0, self.wage_increment * self.wage)
@@ -133,8 +138,6 @@ class Firm(abcFinance.Agent):
         if dividends - deposits < 0:
             # give deposits
             # accounting
-            print(dividends)
-            print(deposits)
             self.accounts.book(debit=[("dividend_expenses", dividends)],
                                credit=[(self.firm_id_deposit, dividends)])
             self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
@@ -294,7 +297,6 @@ class Firm(abcFinance.Agent):
         for i in range(self.num_banks):
             total_bank_notes += self["bank_notes" + str(i)]
 
-        print("TOTAL BANK NOTES AT TIME OF PAYING WORKER: " + str(total_bank_notes))
         # give bank notes
         # accounting
         # payment is in bank notes
@@ -306,8 +308,6 @@ class Firm(abcFinance.Agent):
                 break
             note = "bank_notes" + str(i)
             balance = self[note]
-            print("amount of bank_notes"+str(i)+"="+str(balance))
-            print("accounting side:" + str(self.accounts[note].get_balance()[1]))
 
             if salary - paid - balance < 0:
                 # just send salary - paid worth of i bank notes
@@ -341,7 +341,7 @@ class Firm(abcFinance.Agent):
                 self.waiting_for_bank_notes = True
                 self.outstanding_payment = amount
             elif salary - paid - deposit_balance > 0:
-                print("outstanding payment")
+                print("ERROR: outstanding payment, see Fn. pay_workers in firm")
         self.salary = salary
 
     def pay_workers_bank_notes(self):

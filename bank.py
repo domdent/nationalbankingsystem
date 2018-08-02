@@ -74,7 +74,6 @@ class Bank(abcFinance.Agent):
         """
 
         """
-        print(self.name, self.interest)
         for i in range(self.num_firms):
             firm_id = ("firm", i)
             self.send_envelope(firm_id, "interest", self.interest)
@@ -211,7 +210,30 @@ class Bank(abcFinance.Agent):
             sender_list = msg.sender
             amount = msg.content
             gov_bonds = self.accounts["gov_bonds"].get_balance()[1]
-            if (amount / gov_bonds) + self.ratio <= 10:
+            # NEED TO PRIORITIZE GIVING BANK NOTES FROM OTHER BANKS FIRST
+            check_holdings = list(range(self.num_banks))
+            account_list = []
+            for i in check_holdings:
+                note_balance = self["bank_notes" + str(i)]
+                if note_balance > 0 and i != self.id:
+                    account_list.append(i)
+
+            random.shuffle(account_list)
+            for i in account_list:
+                note_balance = self["bank_notes" + str(i)]
+                if amount > note_balance:
+                    self.book(debit=[(sender + "_deposit", note_balance)],
+                              credit=[("bank_notes" + str(self.id), note_balance)])
+                    self.give(sender_list, "bank_notes" + str(i), note_balance)
+                    amount -= note_balance
+                else:
+                    self.book(debit=[(sender + "_deposit", amount)],
+                              credit=[("bank_notes" + str(self.id), amount)])
+                    self.give(sender_list, "bank_notes" + str(i), amount)
+                    amount = 0
+                    break
+
+            if (amount / gov_bonds) + self.ratio <= 10 and amount > 0:
                 # if granting the bank notes doesn't go over the ratio of 10
                 # book bank notes
                 self.book(debit=[(sender + "_deposit", amount)],
@@ -228,6 +250,6 @@ class Bank(abcFinance.Agent):
                 self.give(sender_list, "bank_notes" + str(self.id), amount)
                 self.ratio += (amount / gov_bonds)
             else:
-                print("NEED TO GET BANK NOTES FROM OTHER BANKS!!")
+                print("ERROR: NEED TO GET BANK NOTES FROM OTHER BANKS!!")
                 pass
                 # have to get bank notes from other banks...
