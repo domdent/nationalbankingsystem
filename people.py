@@ -28,7 +28,7 @@ class People(abcFinance.Agent):
         self.wage_acceptance = wage_acceptance
         # accounting
         self.num_banks = num_banks
-        self.accounts.make_stock_accounts(["goods", "bank_notes"])
+        self.accounts.make_asset_accounts(["goods", "bank_notes"])
         self.accounts.make_flow_accounts(["consumption_expenses", "salary_income",
                                           "buying_expenses", "bank_profits"])
         split_amount = people_money / num_banks
@@ -131,8 +131,10 @@ class People(abcFinance.Agent):
             bank_note_dict[i] = balance / total_bank_notes
 
         I = total_bank_notes  # total_bank_notes?
+        self.log("I", I)
         for firm in range(self.num_firms):  # fix systematic advantage for 0 firm
             firm_price = float(self.price_dict['firm', firm])
+            assert firm_price > 0, firm_price
             demand = (I / q) * (q / firm_price) ** (1 / (1 - l))
 
             # buy with the various bank note currencies proportionally
@@ -178,7 +180,7 @@ class People(abcFinance.Agent):
         """
         total_bank_notes = 0
         for i in range(self.num_banks):
-            total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+            total_bank_notes += self["bank_notes" + str(i)]
 
         print('    ' + self.group + str(dict(self.possessions())))
         self.log("money", total_bank_notes)

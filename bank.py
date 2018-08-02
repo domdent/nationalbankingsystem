@@ -217,11 +217,11 @@ class Bank(abcFinance.Agent):
                 self.book(debit=[(sender + "_deposit", amount)],
                           credit=[("bank_notes" + str(self.id), amount)])
                 self.create("bank_notes" + str(self.id), amount)
-                try:
+                if sender != "people":
                     self.send(sender_list, "abcEconomics_forceexecute", ("_autobook", dict(
                         debit=[("bank_notes" + str(self.id), amount)],
                         credit=[(sender + "_deposit", amount)])))
-                except KeyError:
+                else:
                     self.send(sender_list, "abcEconomics_forceexecute", ("_autobook", dict(
                         debit=[("bank_notes" + str(self.id), amount)],
                         credit=[(self.name + "_deposit", amount)])))
