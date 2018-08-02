@@ -63,6 +63,7 @@ for r in range(params["num_days"]):
 
     group_of_firms.production()
     group_of_firms.pay_workers()
+    people.convert_deposits()
     group_of_banks.grant_bank_notes()
     group_of_firms.pay_workers_bank_notes()
 

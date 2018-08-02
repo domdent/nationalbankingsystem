@@ -122,18 +122,19 @@ class Firm(abcFinance.Agent):
         self.log('demand', list(demand)[self.id])
 
     def pay_dividends(self):
-        self.profit_1 = self.profit
-
         total_bank_notes = 0
         for i in range(self.num_banks):
             total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
         deposits = self.accounts[self.firm_id_deposit].get_balance()[1]
 
-        self.profits = dividends = total_bank_notes + deposits - self.last_round_money
+        self.profits = total_bank_notes + deposits - self.last_round_money
+        dividends = max(0, self.profits)
         self.last_round_money = total_bank_notes
         if dividends - deposits < 0:
             # give deposits
             # accounting
+            print(dividends)
+            print(deposits)
             self.accounts.book(debit=[("dividend_expenses", dividends)],
                                credit=[(self.firm_id_deposit, dividends)])
             self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(

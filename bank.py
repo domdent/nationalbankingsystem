@@ -6,12 +6,14 @@ class Bank(abcFinance.Agent):
     Bank
     """
 
-    def init(self, cash_reserves, num_firms, **_):
+    def init(self, cash_reserves, num_firms, num_banks, **_):
         """
         """
         self.name = "bank" + str(self.id)
-
-        self.accounts.make_stock_accounts(["gov_bonds", "bank_notes" + str(self.id)])
+        self.num_banks = num_banks
+        self.accounts.make_stock_accounts(["gov_bonds"])
+        for i in range(self.num_banks):
+            self.accounts.make_stock_accounts(["bank_notes" + str(i)])
         self.accounts.make_flow_accounts(["interest_income", "profits"])
         self.book(debit=[("gov_bonds", cash_reserves)],
                   credit=[(self.accounts.residual_account_name, cash_reserves)])
@@ -208,7 +210,6 @@ class Bank(abcFinance.Agent):
                 sender = sender[0] + str(sender[1])
             sender_list = msg.sender
             amount = msg.content
-            current_bank_notes = self.accounts["bank_notes" + str(self.id)].get_balance()[1]
             gov_bonds = self.accounts["gov_bonds"].get_balance()[1]
             if (amount / gov_bonds) + self.ratio <= 10:
                 # if granting the bank notes doesn't go over the ratio of 10
@@ -216,10 +217,16 @@ class Bank(abcFinance.Agent):
                 self.book(debit=[(sender + "_deposit", amount)],
                           credit=[("bank_notes" + str(self.id), amount)])
                 self.create("bank_notes" + str(self.id), amount)
-                self.send(sender_list, "abcEconomics_forceexecute", ("_autobook", dict(
-                    debit=[("bank_notes" + str(self.id), amount)],
-                    credit=[(sender + "_deposit", amount)])))
+                try:
+                    self.send(sender_list, "abcEconomics_forceexecute", ("_autobook", dict(
+                        debit=[("bank_notes" + str(self.id), amount)],
+                        credit=[(sender + "_deposit", amount)])))
+                except KeyError:
+                    self.send(sender_list, "abcEconomics_forceexecute", ("_autobook", dict(
+                        debit=[("bank_notes" + str(self.id), amount)],
+                        credit=[(self.name + "_deposit", amount)])))
                 self.give(sender_list, "bank_notes" + str(self.id), amount)
+                self.ratio += (amount / gov_bonds)
             else:
                 print("NEED TO GET BANK NOTES FROM OTHER BANKS!!")
                 pass
