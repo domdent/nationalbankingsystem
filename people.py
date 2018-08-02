@@ -130,6 +130,8 @@ class People(abcFinance.Agent):
             balance = self["bank_notes" + str(i)]
             print("balance="+str(balance)+", total_bank_notes="+str(total_bank_notes))
             bank_note_dict[i] = balance / total_bank_notes
+        print("Price Dictionary: ")
+        print(self.price_dict)
 
         I = total_bank_notes  # total_bank_notes?
         for firm in range(self.num_firms):  # fix systematic advantage for 0 firm
