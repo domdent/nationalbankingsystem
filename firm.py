@@ -48,8 +48,9 @@ class Firm(abcFinance.Agent):
         self.num_banks = num_banks
         amount = firm_money / num_banks
         for i in range(self.num_banks):
-            self.accounts.make_stock_accounts(["bank_notes" + str(i)])
-        self.housebank = "bank" + str(random.randint(0, num_banks - 1))
+            self.accounts.make_asset_accounts(["bank_notes" + str(i)])
+        bank_id = str(random.randint(0, num_banks - 1))
+        self.housebank = "bank" + str(bank_id)
         self.create("bank_notes" + str(self.housebank[-1:]), firm_money)
         self.firm_id_deposit = ("firm" + str(self.id) + "_deposit")
         self.accounts.make_stock_accounts([self.firm_id_deposit, "goods", "wages_owed"])
@@ -123,8 +124,10 @@ class Firm(abcFinance.Agent):
         total_bank_notes = 0
         for i in range(self.num_banks):
             total_bank_notes += self.accounts["bank_notes" + str(i)].get_balance()[1]
+        deposits = self.accounts[self.firm_id_deposit].get_balance()[1]
 
-        self.profits = dividends = total_bank_notes - self.last_round_money
+        self.profits = dividends = total_bank_notes + deposits - self.last_round_money
+        self.last_round_money = total_bank_notes
         if dividends > 0:
             # give deposits
             # accounting
@@ -137,7 +140,6 @@ class Firm(abcFinance.Agent):
                 debit=[(self.housebank + "_deposit", dividends)],
                 credit=[("salary_income", dividends)])))
 
-        self.last_round_money = total_bank_notes
 
     def expand_or_change_price(self):
         profitable = self.profit >= self.profit_1
@@ -241,13 +243,7 @@ class Firm(abcFinance.Agent):
         for i in range(self.num_banks):
             total_bank_notes += self["bank_notes" + str(i)]
 
-        if salary > total_bank_notes:
-            salary = total_bank_notes
-            self.wage -= self.wage_increment
-            self.wage = max(0, self.wage)
-            # TAKE OUT LOAN???
-            print("WARNING: cannot afford to pay workers with current owned bank notes!")
-
+        print("TOTAL BANK NOTES AT TIME OF PAYING WORKER: " + str(total_bank_notes))
         # give bank notes
         # accounting
         # payment is in bank notes
@@ -259,9 +255,11 @@ class Firm(abcFinance.Agent):
                 break
             note = "bank_notes" + str(i)
             balance = self[note]
+            print("amount of bank_notes"+str(i)+"="+str(balance))
+            print("accounting side:" + str(self.accounts[note].get_balance()[1]))
 
             if salary - paid - balance < 0:
-                # just send salary worth of i bank notes
+                # just send salary - paid worth of i bank notes
                 self.accounts.book(debit=[("wages_owed", salary - paid)],
                                    credit=[(note, salary - paid)])
                 self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
