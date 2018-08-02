@@ -406,6 +406,11 @@ class Firm(abcFinance.Agent):
         request a loan
         """
         balance = self.accounts["firm" + str(self.id) + "_deposit"].get_balance()[1]
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self["bank_notes" + str(i)]
+        balance += total_bank_notes
+
         # get all interest rates from banks
         interest = [[] for _ in range(self.num_banks)]
         messages = self.get_messages("interest")
