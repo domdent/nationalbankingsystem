@@ -1,5 +1,5 @@
 import abcFinance
-import abce
+import abcEconomics as abce
 from firm import Firm
 from people import People
 from bank import Bank

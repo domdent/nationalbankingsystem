@@ -62,7 +62,7 @@ class People(abcFinance.Agent):
             self.accounts.book(debit=[(note, amount)],
                                credit=[(bank_id + "_deposit", amount)])
             # bank credits bank notes at beginning of program
-            self.send(bank_id, "abce_forceexecute", ("_autobook", dict(
+            self.send(bank_id, "abcEconomics_forceexecute", ("_autobook", dict(
                 debit=[("people_deposit", amount)],
                 credit=[(note, amount)])))
 
@@ -264,10 +264,10 @@ class People(abcFinance.Agent):
         """
         self.accounts.book(debit=[(to_account + "_deposit", amount)],
                            credit=[(from_account + "_deposit", amount)])
-        self.send(from_account, "abce_forceexecute", ("_autobook", dict(
+        self.send(from_account, "abcEconomics_forceexecute", ("_autobook", dict(
             debit=[("people_deposit", amount)],
             credit=[("gov_bonds", amount)])))
-        self.send(to_account, "abce_forceexecute", ("_autobook", dict(
+        self.send(to_account, "abcEconomics_forceexecute", ("_autobook", dict(
             debit=[("gov_bonds", amount)],
             credit=[("people_deposit", amount)])))
 

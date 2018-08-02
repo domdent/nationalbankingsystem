@@ -39,11 +39,11 @@ class Bank(abcFinance.Agent):
             self.book(debit=[(sender + "_deposit", amount)],
                       credit=[("bank_notes" + str(self.id), amount)])
             if msg.sender != "people":
-                self.send(msg.sender, "abce_forceexecute", ("_autobook", dict(
+                self.send(msg.sender, "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("bank_notes" + str(self.id), amount)],
                     credit=[(sender + "_deposit", amount)])))
             else:
-                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("bank_notes" + str(self.id), amount)],
                     credit=[(self.name + "_deposit", amount)])))
 
@@ -151,7 +151,7 @@ class Bank(abcFinance.Agent):
                 self.accounts.make_stock_accounts([sender + "_loan"])
                 self.book(debit=[(sender + "_loan", amount * scaling)],
                           credit=[(sender + "_deposit", amount * scaling)])
-            self.send(sender_list, "abce_forceexecute", ("_autobook", dict(
+            self.send(sender_list, "abcEconomics_forceexecute", ("_autobook", dict(
                 debit=[(sender + "_deposit", amount * scaling)],
                 credit=[("loan_liabilities", amount * scaling)])))
             loan = [amount * scaling, self.interest]
@@ -163,7 +163,7 @@ class Bank(abcFinance.Agent):
             amount = equity - self.cash_reserves
             self.book(debit=[(self.accounts.residual_account_name, amount)],
                       credit=[("people_deposit", amount)])
-            self.send("people", "abce_forceexecute", ("_autobook", dict(
+            self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                 debit=[(self.name + "_deposit", amount)],
                 credit=[("bank_profits", amount)])))
 
@@ -195,7 +195,7 @@ class Bank(abcFinance.Agent):
                 self.book(debit=[(sender + "_deposit", amount)],
                           credit=[("bank_notes" + str(self.id), amount)])
                 self.create("bank_notes" + str(self.id), amount)
-                self.send(sender_list, "abce_forceexecute", ("_autobook", dict(
+                self.send(sender_list, "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("bank_notes" + str(self.id), amount)],
                     credit=[(sender + "_deposit", amount)])))
                 self.give(sender_list, "bank_notes" + str(self.id), amount)

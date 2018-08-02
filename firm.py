@@ -130,10 +130,10 @@ class Firm(abcFinance.Agent):
             # accounting
             self.accounts.book(debit=[("dividend_expenses", dividends)],
                                credit=[(self.firm_id_deposit, dividends)])
-            self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+            self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
                 debit=[(self.firm_id_deposit, dividends)],
                 credit=[("people_deposit", dividends)])))
-            self.send("people", "abce_forceexecute", ("_autobook", dict(
+            self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                 debit=[(self.housebank + "_deposit", dividends)],
                 credit=[("salary_income", dividends)])))
 
@@ -196,10 +196,10 @@ class Firm(abcFinance.Agent):
                                           ("cost_of_goods_sold", cost)],
                                    credit=[("sales_revenue", sale_value),
                                            ("goods", cost)])
-                self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+                self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("people_deposit", sale_value)],
                     credit=[(self.firm_id_deposit, sale_value)])))
-                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("goods", sale_value)],
                     credit=[(self.housebank + "_deposit", sale_value)])))
                 self.accept(offer)
@@ -214,10 +214,10 @@ class Firm(abcFinance.Agent):
                                           ("cost_of_goods_sold", cost)],
                                    credit=[("sales_revenue", sale_value),
                                            ("goods", cost)])
-                self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+                self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("people_deposit", sale_value)],
                     credit=[(self.firm_id_deposit, sale_value)])))
-                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[("goods", sale_value)],
                     credit=[(self.housebank + "_deposit", sale_value)])))
 
@@ -264,7 +264,7 @@ class Firm(abcFinance.Agent):
                 # just send salary worth of i bank notes
                 self.accounts.book(debit=[("wages_owed", salary - paid)],
                                    credit=[(note, salary - paid)])
-                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[(note, salary - paid)],
                     credit=[("salary_income", salary - paid)])))
                 self.give("people", note, quantity=salary - paid)
@@ -274,7 +274,7 @@ class Firm(abcFinance.Agent):
                 # just send balance worth of i bank notes
                 self.accounts.book(debit=[("wages_owed", balance)],
                                    credit=[(note, balance)])
-                self.send("people", "abce_forceexecute", ("_autobook", dict(
+                self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                     debit=[(note, balance)],
                     credit=[("salary_income", balance)])))
                 self.give("people", note, quantity=balance)
@@ -302,7 +302,7 @@ class Firm(abcFinance.Agent):
             note = "bank_notes" + self.housebank[-1:]
             self.accounts.book(debit=[("wages_owed", amount)],
                                credit=[(note, amount)])
-            self.send("people", "abce_forceexecute", ("_autobook", dict(
+            self.send("people", "abcEconomics_forceexecute", ("_autobook", dict(
                 debit=[(note, amount)],
                 credit=[("salary_income", amount)])))
             self.give("people", note, quantity=amount)
@@ -421,10 +421,10 @@ class Firm(abcFinance.Agent):
                                    credit=[(self.firm_id_deposit, interest_payment)])
                 self.accounts.book(debit=[("loan_liabilities", amount)],
                                    credit=[(self.firm_id_deposit, amount)])
-                self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+                self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
                               debit=[(self.firm_id_deposit, interest_payment)],
                               credit=[("interest_income", interest_payment)])))
-                self.send(self.housebank, "abce_forceexecute", ("_autobook", dict(
+                self.send(self.housebank, "abcEconomics_forceexecute", ("_autobook", dict(
                               debit=[(self.firm_id_deposit, amount)],
                               credit=[("firm" + str(self.id) + "_loan", amount)])))
                 self.own_loan = False
