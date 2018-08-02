@@ -159,8 +159,11 @@ class Firm(abcFinance.Agent):
             housebank_notes = self["bank_notes" + str(self.housebank[4:])]
             if amount < housebank_notes:
                 self.send_envelope(self.housebank, "deposit", (amount, str(self.housebank[4:])))
+                self.give(self.housebank, "bank_notes" + str(self.housebank[4:]), amount)
             else:
                 self.send_envelope(self.housebank, "deposit", (housebank_notes, str(self.housebank[4:])))
+                self.give(self.housebank, "bank_notes" + str(self.housebank[4:]), housebank_notes)
+
                 # sends off for all housebank notes that agent can
                 # now needs to proportionally send off for the required amount from other banks
                 amount -= housebank_notes
@@ -173,6 +176,7 @@ class Firm(abcFinance.Agent):
 
                 for i in range(self.num_banks):
                     self.send_envelope(self.housebank, "deposit", (amount * bank_note_dict[i], str(i)))
+                    self.give(self.housebank, "bank_notes" + str(i), amount * bank_note_dict[i])
                     # needs to be processed in bank agent
                     # then call up second dividend function for payment
         else:
