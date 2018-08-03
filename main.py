@@ -6,6 +6,8 @@ from bank import Bank
 import pandas as pd
 import plotly.offline as offline
 import plotly.graph_objs as go
+import traceback
+
 
 params = dict(
     population=500,
@@ -14,7 +16,7 @@ params = dict(
     num_banks=4,
     firm_money=200,
 
-    num_days=501,
+    num_days=5001,
 
     l=0.5,  # constant from CS equation
     num_days_buffer=10,  # number of days worth of wages a firm will keep after giving profits
@@ -26,7 +28,7 @@ params = dict(
     worker_increment=0.1,
     productivity=1,
     wage_acceptance=1,
-    cash_reserves=2000)
+    cash_reserves=20000)
 
 simulation = abce.Simulation(name='economy', processes=1)
 # initiate banks first
@@ -40,62 +42,62 @@ group_of_banks.credit_depositors()
 all_agents = group_of_firms + group_of_banks + people
 all_agents.print_balance_statement()
 
+try:
 
-for r in range(params["num_days"]):
-    simulation.time = r
+    for r in range(params["num_days"]):
+        simulation.time = r
 
-    group_of_firms.panel_log(variables=['wage', 'ideal_num_workers'],
-                             goods=['workers'])
-    print("test")
-    people.create_labor()
+        group_of_firms.panel_log(variables=['wage', 'ideal_num_workers'],
+                                 goods=['workers'])
+        print("test")
+        people.create_labor()
 
-    # LOANS:
-    group_of_banks.determine_interest()
-    group_of_banks.send_interest_rates()
-    group_of_firms.request_loan()
-    group_of_banks.open_new_acc()
-    group_of_banks.close_accounts()
-    group_of_banks.grant_loans()
+        # LOANS:
+        group_of_banks.determine_interest()
+        group_of_banks.send_interest_rates()
+        group_of_firms.request_loan()
+        group_of_banks.open_new_acc()
+        group_of_banks.close_accounts()
+        group_of_banks.grant_loans()
 
-    vacancies_list = list(group_of_firms.publish_vacencies())
+        vacancies_list = list(group_of_firms.publish_vacencies())
 
-    people.send_workers(vacancies_list)
+        people.send_workers(vacancies_list)
 
-    group_of_firms.production()
-    group_of_firms.pay_workers()
-    people.convert_deposits()
-    group_of_banks.grant_bank_notes()
-    group_of_firms.pay_workers_bank_notes()
+        group_of_firms.production()
+        group_of_firms.pay_workers()
+        people.convert_deposits()
+        group_of_banks.grant_bank_notes()
+        group_of_firms.pay_workers_bank_notes()
 
-    # LOANS
-    group_of_firms.loan_repayment()
+        # LOANS
+        group_of_firms.loan_repayment()
 
-    group_of_firms.send_prices()
-    people.get_prices()
-    demand = people.buy_goods()
+        group_of_firms.send_prices()
+        people.get_prices()
+        demand = people.buy_goods()
 
-    group_of_firms.sell_goods()
+        group_of_firms.sell_goods()
 
-    group_of_firms.pay_dividends()
-    group_of_banks.credit_bank_notes()
-    group_of_firms.pay_remaining_dividends()
+        group_of_firms.pay_dividends()
+        group_of_banks.credit_bank_notes()
+        group_of_firms.pay_remaining_dividends()
 
-    group_of_firms.determine_bounds(demand=list(demand)[0])
-    (group_of_firms + people).print_possessions()
-    group_of_firms.determine_wage()
-    group_of_firms.expand_or_change_price()
-    (people + group_of_firms).destroy_unused_labor()
-    people.consumption()
-    group_of_banks.give_profits()
-    all_agents.check_for_lost_messages()
-    people.adjust_accounts()
-    group_of_banks.book_end_of_period()
+        group_of_firms.determine_bounds(demand=list(demand)[0])
+        all_agents.print_possessions()
+        group_of_firms.determine_wage()
+        group_of_firms.expand_or_change_price()
+        (people + group_of_firms).destroy_unused_labor()
+        people.consumption()
+        group_of_banks.give_profits()
+        all_agents.check_for_lost_messages()
+        people.adjust_accounts()
+        group_of_banks.book_end_of_period()
 
+except Exception:
+    traceback.print_exc()
 
 all_agents.print_balance_statement()
-
-
-#all_agents.print_balance_statement()
 
 
 print('done')
@@ -170,6 +172,9 @@ GraphFn("num_loans", "firm")
 
 
 """
+Running but there is a crashing economy 
+
+
 Currently getting a negative value for self["bank note X...
 check console when program runs,
 Need to also look into why those values are being driven down

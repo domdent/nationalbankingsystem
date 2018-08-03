@@ -82,6 +82,7 @@ class Bank(abcFinance.Agent):
         """
         See how much of cash/deposit limit (1:10) is full
         """
+        #self.log("time", self.time)
         cash = self.accounts["gov_bonds"].get_balance()[1]
         deposits = 0
         for account in self.account_list:
@@ -253,3 +254,15 @@ class Bank(abcFinance.Agent):
                 print("ERROR: NEED TO GET BANK NOTES FROM OTHER BANKS!!")
                 pass
                 # have to get bank notes from other banks...
+
+
+    def print_possessions(self):
+        """
+        prints possessions and logs money of a person agent
+        """
+        total_bank_notes = 0
+        for i in range(self.num_banks):
+            total_bank_notes += self["bank_notes" + str(i)]
+        self.log("ratio", self.ratio)
+        self.log("total_bank_notes", total_bank_notes)
+        self.log("number of accounts", len(self.account_list))

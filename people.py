@@ -131,18 +131,18 @@ class People(abcFinance.Agent):
             bank_note_dict[i] = balance / total_bank_notes
 
         I = total_bank_notes  # total_bank_notes?
-        self.log("I", I)
         for firm in range(self.num_firms):  # fix systematic advantage for 0 firm
             firm_price = float(self.price_dict['firm', firm])
             assert firm_price > 0, firm_price
-            demand = (I / q) * (q / firm_price) ** (1 / (1 - l))
+            demand_in_money = (I / q) * (q / firm_price) ** (1 / (1 - l))
+            demand = demand_in_money / firm_price
 
             # buy with the various bank note currencies proportionally
             for i in range(self.num_banks):
                 proportion = bank_note_dict[i]
                 self.buy(("firm", firm), good="produce",
-                         quantity=proportion * demand, price=firm_price,
-                         currency="bank_notes" + str(i))
+                         quantity=self["bank_notes" + str(i)] * demand / total_bank_notes2, price=firm_price,
+                         currency="bank_notes" + str(i), epsilon=0.01)
 
             demand_list.append(demand)
         self.log('total_demand', sum(demand_list))
@@ -179,12 +179,17 @@ class People(abcFinance.Agent):
         prints possessions and logs money of a person agent
         """
         total_bank_notes = 0
+        total_deposits = 0
         for i in range(self.num_banks):
             total_bank_notes += self["bank_notes" + str(i)]
+            total_deposits += self.accounts["bank" + str(i) + "_deposit"].get_balance()[1]
 
         print('    ' + self.group + str(dict(self.possessions())))
-        self.log("money", total_bank_notes)
+        self.log("total bank notes", total_bank_notes)
+        self.log("total deposits", total_deposits)
+        self.log("total money", total_deposits + total_bank_notes)
         self.log("workers", self["workers"])
+        self.log("goods", self["goods"])
 
     def getvalue(self):
         """

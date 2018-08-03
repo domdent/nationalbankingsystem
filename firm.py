@@ -95,10 +95,6 @@ class Firm(abcFinance.Agent):
         if the ideal number of workers wasn't satisfied then raises the wage
         if the number of workers offered exceeded 110% of the ideal number then lower the wage
         """
-        total_bank_notes = 0
-        for i in range(self.num_banks):
-            total_bank_notes += self["bank_notes" + str(i)]
-        self.log("notes", total_bank_notes)
 
         messages = self.get_messages("max_employees")
         if self.ideal_num_workers > self['workers']:
@@ -239,7 +235,6 @@ class Firm(abcFinance.Agent):
 
         self.price = max(self.wage, self.price)
         self.ideal_num_workers = max(0, self.ideal_num_workers)
-        self.log('price', self.price)
 
     def sell_goods(self):
         """
@@ -385,9 +380,14 @@ class Firm(abcFinance.Agent):
         total_bank_notes = 0
         for i in range(self.num_banks):
             total_bank_notes += self["bank_notes" + str(i)]
+        balance = self.accounts[self.firm_id_deposit].get_balance()[1]
+        self.log("deposit_balance", balance)
         self.log("total_bank_notes", total_bank_notes)
+        self.log("total_money", balance + total_bank_notes)
         self.log("produce", self["produce"])
         self.log("workers", self["workers"])
+        self.log("wage", self.wage)
+        self.log("price", self.price)
 
     def destroy_unused_labor(self):
         """
